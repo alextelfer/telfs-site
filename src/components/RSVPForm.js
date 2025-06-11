@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 export default function RSVPForm() {
-  const [formData, setFormData] = useState({
+  const [, setFormData] = useState({
     firstName: "",
     lastName: "",
     phone: ""
@@ -74,7 +74,8 @@ export default function RSVPForm() {
       >
         YES
       </button>
-      
+      console.log(formData); // Just to make ESLint happy
+
       <button 
         onClick={handleNo} 
         style={{
