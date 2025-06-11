@@ -74,8 +74,7 @@ export default function RSVPForm() {
       >
         YES
       </button>
-      console.log(formData); // Just to make ESLint happy
-
+      
       <button 
         onClick={handleNo} 
         style={{
