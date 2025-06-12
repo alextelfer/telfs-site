@@ -41,25 +41,24 @@ export default function Birthday() {
     flexDirection: 'column',
     alignItems: 'center',
     boxSizing: 'border-box', }}>
-      <h1>alex telfer's birthday bonanza</h1>
+      <h1>come to my birthday</h1>
       <h1>saturday, June 21st</h1>
       <h1>the big 2-9</h1>
-      <p>come play spikeball with me at 4pm at Bealieu Gardens</p>
-      <p>and/or</p>
-      <p>drink with me at 7pm ish or whenever at ship & anchor</p>
-      <p>please rsvp so i know how many people are coming :)</p>
+      <p>come hang and 'av a pint at the ship. </p>
+      <p>please rsvp :)</p>
+      
       <section>
-        <RSVPForm />
-      </section>
-
-      <section>
-        <h2>Event Info</h2>
-        <p><strong>spike ball in the park (weather permitting):</strong> 4-7pm <a href='https://maps.app.goo.gl/MAiav4Lc2kfTuKwY7'>Beaulieu Gardens</a></p>
-        <p>if the weather sucks will prob just go drinking</p>
+        <h2>location:</h2>
+        {/* <p><strong>spike ball in the park (weather permitting):</strong> 4-7pm <a href='https://maps.app.goo.gl/MAiav4Lc2kfTuKwY7'>Beaulieu Gardens</a></p> */}
+        {/* <p>if the weather sucks will prob just go drinking</p> */}
         <p><strong>drinkies:</strong> 715pm <a href='https://maps.app.goo.gl/ibGWpob9PqEPyT8V7'>ship & anchor</a> </p>
 
         <h3>Add to Calendar</h3>
         <a href="/birthday-invite.ics" download>Add to Calendar (.ics)</a>
+      </section>
+
+      <section>
+        <RSVPForm />
       </section>
     </div>
   );
