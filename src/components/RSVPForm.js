@@ -22,23 +22,18 @@ const RSVPForm = () => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const form = e.target;
+  const form = e.target;
+  const data = new FormData(form);
 
-    // Create a FormData object so Netlify handles the submission
-    const data = new FormData(form);
-
-    // Optional: flatten any complex fields here if needed
-    // e.g. convert arrays to strings, etc.
-
-    fetch('/', {
-      method: 'POST',
-      body: data,
-    })
-      .then(() => setSubmitted(true))
-      .catch(() => alert('There was a problem submitting the form.'));
-  };
+  fetch('/', {
+    method: 'POST',
+    body: data,
+  })
+    .then(() => setSubmitted(true))
+    .catch(() => alert('There was a problem submitting the form.'));
+};
 
   const handleRedirect = () => {
     window.location.href = '/';
