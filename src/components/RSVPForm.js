@@ -10,6 +10,7 @@ const RSVPForm = () => {
     plusOne: false,
     plusOneName: '',
     meaningOfPerson: '',
+    plusOneRelation: [],
   });
 
   const handleChange = (e) => {
@@ -123,7 +124,7 @@ const RSVPForm = () => {
       <button
         type="button"
         onClick={() =>
-          alert('no? if you entered your information im stealing your identity')
+          alert('..... this is so sad, alexa play despacito')
         }
         style={{ fontSize: '2rem' }}
       >
