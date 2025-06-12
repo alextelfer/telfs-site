@@ -23,17 +23,16 @@ const RSVPForm = () => {
 
   const handleSubmit = (e) => {
   e.preventDefault();
-
   const form = e.target;
   const data = new FormData(form);
-
   fetch('/', {
     method: 'POST',
-    body: data,
+    body: data
   })
     .then(() => setSubmitted(true))
-    .catch(() => alert('There was a problem submitting the form.'));
+    .catch(() => alert('Submission failed'));
 };
+
 
   const handleRedirect = () => {
     window.location.href = '/';
@@ -74,14 +73,15 @@ const RSVPForm = () => {
 
       {/* Actual Form */}
       <form
-        onSubmit={handleSubmit}
-        name="rsvp"
-        method="POST"
-        netlify-honeypot="bot-field"
-        data-netlify="true"
-      >
-        <input type="hidden" name="rsvp" value="rsvp" />
-        <input type="hidden" name="bot-field" />
+  name="rsvp"
+  method="POST"
+  data-netlify="true"
+  data-netlify-honeypot="bot-field"
+  onSubmit={handleSubmit}
+>
+  <input type="hidden" name="form-name" value="rsvp" />
+  <input type="hidden" name="bot-field" />
+
         <br />
         <p>the part where i steal your identity:</p>
 
