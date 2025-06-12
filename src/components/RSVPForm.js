@@ -85,7 +85,7 @@ const RSVPForm = () => {
         netlify-honeypot="bot-field"
         data-netlify="true"
       >
-        <input type="hidden" name="form-name" value="rsvp" />
+        <input type="hidden" name="rsvp" value="rsvp" />
         <input type="hidden" name="bot-field" />
         <br />
         <p>the part where i steal your identity:</p>
