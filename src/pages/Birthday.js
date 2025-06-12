@@ -51,7 +51,7 @@ export default function Birthday() {
         <h2>location:</h2>
         {/* <p><strong>spike ball in the park (weather permitting):</strong> 4-7pm <a href='https://maps.app.goo.gl/MAiav4Lc2kfTuKwY7'>Beaulieu Gardens</a></p> */}
         {/* <p>if the weather sucks will prob just go drinking</p> */}
-        <p><strong>drinkies:</strong> 715pm <a href='https://maps.app.goo.gl/ibGWpob9PqEPyT8V7'>ship & anchor</a> </p>
+        <p><strong>drinkies:</strong> 7pm ish <a href='https://maps.app.goo.gl/ibGWpob9PqEPyT8V7'>ship & anchor</a> </p>
 
         <h3>Add to Calendar</h3>
         <a href="/birthday-invite.ics" download>Add to Calendar (.ics)</a>
