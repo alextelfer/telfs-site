@@ -37,9 +37,9 @@ export default function Birthday() {
   return (
     <div style={{ textAlign: "center", padding: "2rem" }}>
       <h1>alex telfer's birthday bonanza</h1>
-      <p>come play spikeball with me at time and place</p>
+      <p>come play spikeball with me at 4pm at Bealieu Gardens</p>
       <p>and/or</p>
-      <p>drink with me at time and place</p>
+      <p>drink with me at 7pm ish or whenever at ship & anchor</p>
       <p>please rsvp so i know how many people are coming :)</p>
       <section>
         <RSVPForm />
@@ -47,8 +47,9 @@ export default function Birthday() {
 
       <section>
         <h2>Event Info</h2>
-        <p><strong>Hangs:</strong> 3 PM – Prince's Island Park</p>
-        <p><strong>Drinks:</strong> 7 PM – Proof Cocktail Bar</p>
+        <p><strong>spike ball in the park (weather permitting):</strong> 4-7pm <a href='https://maps.app.goo.gl/MAiav4Lc2kfTuKwY7'>Beaulieu Gardens</a></p>
+        <p>if the weather sucks will prob just go drinking</p>
+        <p><strong>drinkies:</strong> 715pm <a href='https://maps.app.goo.gl/ibGWpob9PqEPyT8V7'>ship & anchor</a> </p>
 
         <h3>Add to Calendar</h3>
         <a href="/birthday-invite.ics" download>Add to Calendar (.ics)</a>
