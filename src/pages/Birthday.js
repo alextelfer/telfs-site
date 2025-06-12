@@ -36,12 +36,14 @@ export default function Birthday() {
 
   return (
     <div style={{ minHeight: '100vh',
-    padding: '150px 16px 16px', // top, left/right, bottom
+    padding: '250px 16px 16px', // top, left/right, bottom
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     boxSizing: 'border-box', }}>
       <h1>alex telfer's birthday bonanza</h1>
+      <h1>saturday, June 21st</h1>
+      <h1>the big 2-9</h1>
       <p>come play spikeball with me at 4pm at Bealieu Gardens</p>
       <p>and/or</p>
       <p>drink with me at 7pm ish or whenever at ship & anchor</p>
