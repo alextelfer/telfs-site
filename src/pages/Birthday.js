@@ -35,7 +35,7 @@ export default function Birthday() {
   }
 
   return (
-    <div style={{ textAlign: "center", padding: "2rem", minHeight: '100vh', padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box', }}>
+    <div style={{ textAlign: "center", padding: "2rem", minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box', }}>
       <h1>alex telfer's birthday bonanza</h1>
       <p>come play spikeball with me at 4pm at Bealieu Gardens</p>
       <p>and/or</p>
