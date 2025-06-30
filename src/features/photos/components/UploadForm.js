@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient'; // adjust path if needed
 
 const UploadForm = () => {
   const [file, setFile] = useState(null);
@@ -10,59 +11,44 @@ const UploadForm = () => {
     setMessage('');
   };
 
-  const handleUpload = async (file) => {
+  const handleUpload = async () => {
     if (!file) {
       return setMessage('Please select a file first.');
     }
-    const user = supabase.auth.getUser(); // or pass `userId` from props
 
-    if (!user?.id) return alert('Not signed in!');
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('userId', user.id); // Used by the Netlify Function
     setUploading(true);
     setMessage('');
 
-    const response = await fetch('/.netlify/functions/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    const result = await response.json();
-    console.log(result);
-
     try {
-      // 1. Call serverless function to get upload URL and token
-      const res = await fetch('/.netlify/functions/get-upload-url');
-      const { uploadUrl, authToken, fileName } = await res.json();
+      // Get logged-in user
+      const { data: userData, error } = await supabase.auth.getUser();
+      const user = userData?.user;
 
-      // 2. Upload file directly to Backblaze
-      const b2Res = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: authToken,
-          'X-Bz-File-Name': encodeURIComponent(fileName),
-          'Content-Type': file.type,
-          'X-Bz-Content-Sha1': 'do_not_verify',
-        },
-        body: file,
-      });
-      // After upload success:
-      await supabase.from('photos').insert([
-        {
-          user_id: userId,
-          file_name: file.originalFilename,
-          file_path: uploadPath,
-        },
-      ]);
-      if (b2Res.ok) {
-        setMessage('Upload successful!');
-      } else {
-        setMessage('Upload failed.');
+      if (error || !user) {
+        setUploading(false);
+        return setMessage('You must be signed in to upload.');
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      setMessage('Something went wrong.');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', user.id);
+
+      const response = await fetch('/.netlify/functions/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setMessage('✅ Upload successful!');
+        setFile(null);
+      } else {
+        setMessage(`❌ Upload failed: ${result.error}`);
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      setMessage('⚠️ Something went wrong during upload.');
     }
 
     setUploading(false);

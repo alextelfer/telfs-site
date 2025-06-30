@@ -5,6 +5,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.50.2",
     "backblaze-b2": "^1.7.1",
+    "formidable": "^3.5.4",
+    "multiparty": "^4.2.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.1",
