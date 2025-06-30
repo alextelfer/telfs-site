@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient'; // adjust path if needed
+import { supabase } from '../../lib/supabaseClient'; // adjust path if needed
 
 const UploadForm = () => {
   const [file, setFile] = useState(null);
