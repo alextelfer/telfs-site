@@ -1,15 +1,15 @@
 import React from 'react';
-import PhotoCard from './PhotoCard';
-import { useAuth } from '@/lib/AuthContext';
+// import PhotoCard from './PhotoCard';
+import { useAuth } from '../../../lib/AuthContext';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '../../../lib/supabaseClient';
 
-const { session } = useAuth();
-const userId = session?.user?.id;
-
-const Gallery = ({ userId }) => {
+const Gallery = () => {
+  const { session } = useAuth();
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const userId = session?.user?.id;
 
   useEffect(() => {
     const fetchPhotos = async () => {
