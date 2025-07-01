@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { useNavigate } from 'react-router-dom';
+// import { useNavigate } from 'react-router-dom';
 
 const SignIn = () => {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState('');
-  const navigate = useNavigate();
+//   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
