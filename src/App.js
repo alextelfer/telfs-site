@@ -12,6 +12,7 @@ function App() {
         <Route path="/rsvp" element={<RSVP />} />
         <Route path="/birthday" element={<Birthday />} />
         <Route path="/photos" element={<PhotoPage />} />
+        <Route path="/signin" element={<SignIn />} />
       </Routes>
     </Router>
   );
