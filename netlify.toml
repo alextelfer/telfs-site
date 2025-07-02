@@ -6,3 +6,5 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "REACT_APP_SUPABASE_KEY,REACT_APP_B2_BUCKET_NAME"
