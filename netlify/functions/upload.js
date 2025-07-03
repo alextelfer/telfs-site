@@ -25,7 +25,7 @@ export const handler = async (event, context) => {
   }
 
   try {
-    const form = new formidable.IncomingForm({ keepExtensions: true });
+    const form = formidable({ keepExtensions: true });
     const data = await new Promise((resolve, reject) => {
       form.parse(event, (err, fields, files) => {
         if (err) reject(err);
