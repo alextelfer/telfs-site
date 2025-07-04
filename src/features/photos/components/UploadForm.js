@@ -1,69 +1,88 @@
 import React, { useState } from 'react';
-import { supabase } from '../../../lib/supabaseClient'; // adjust path if needed
+// import { supabase } from '../../../lib/supabaseClient';
+import { useAuth } from '../../../lib/AuthContext';
 
 const UploadForm = () => {
+  const { session } = useAuth();
+  const userId = session?.user?.id;
+
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState('');
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
-    setMessage('');
   };
 
-  const handleUpload = async () => {
-    if (!file) {
-      return setMessage('Please select a file first.');
-    }
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!file || !userId) return;
 
     setUploading(true);
-    setMessage('');
+    setStatus('Requesting upload URL...');
 
     try {
-      // Get logged-in user
-      const { data: userData, error } = await supabase.auth.getUser();
-      const user = userData?.user;
-
-      if (error || !user) {
-        setUploading(false);
-        return setMessage('You must be signed in to upload.');
-      }
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userId', user.id);
-
-      const response = await fetch('/.netlify/functions/upload', {
+      // 1. Request presigned URL from Netlify function
+      const res = await fetch('/.netlify/functions/get-presigned-url', {
         method: 'POST',
-        body: formData,
+        body: JSON.stringify({
+          userId,
+          fileName: file.name,
+          mimeType: file.type,
+        }),
       });
 
-      const result = await response.json();
+      const { uploadUrl, authorizationToken, uploadPath } = await res.json();
 
-      if (response.ok) {
-        setMessage('✅ Upload successful!');
-        setFile(null);
-      } else {
-        setMessage(`❌ Upload failed: ${result.error}`);
+      // 2. Upload to B2
+      setStatus('Uploading to B2...');
+
+      const b2UploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: authorizationToken,
+          'X-Bz-File-Name': encodeURIComponent(uploadPath),
+          'Content-Type': file.type,
+          'X-Bz-Content-Sha1': 'do_not_verify', // Simplifies client-side uploads
+        },
+        body: file,
+      });
+
+      if (!b2UploadRes.ok) {
+        throw new Error(`B2 upload failed: ${b2UploadRes.statusText}`);
       }
-    } catch (err) {
-      console.error('Upload error:', err);
-      setMessage('⚠️ Something went wrong during upload.');
-    }
 
-    setUploading(false);
+      // 3. Store metadata in Supabase
+      setStatus('Storing metadata...');
+      const metaRes = await fetch('/.netlify/functions/store-photo-metadata', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId,
+          fileName: file.name,
+          filePath: uploadPath,
+        }),
+      });
+
+      const metaJson = await metaRes.json();
+      if (!metaRes.ok) throw new Error(metaJson.error);
+
+      setStatus('Upload complete!');
+    } catch (err) {
+      console.error(err);
+      setStatus(`Upload failed: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
-    <div>
-      <h2>Upload a Photo</h2>
-      <input type="file" accept="image/*" onChange={handleFileChange} />
-      <br />
-      <button onClick={handleUpload} disabled={uploading}>
+    <form onSubmit={handleUpload} className="p-4">
+      <input type="file" onChange={handleFileChange} />
+      <button type="submit" disabled={uploading || !file}>
         {uploading ? 'Uploading...' : 'Upload'}
       </button>
-      {message && <p>{message}</p>}
-    </div>
+      <p>{status}</p>
+    </form>
   );
 };
 

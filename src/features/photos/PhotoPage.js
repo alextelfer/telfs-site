@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Gallery from './components/Gallery';
 import UploadForm from './components/UploadForm';
 
+
 const PhotosPage = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
