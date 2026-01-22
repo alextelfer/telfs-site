@@ -67,7 +67,7 @@ const SignIn = () => {
 
     try {
       // Get user profile to find email
-      const { data: profile, error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from('user_profiles')
         .select('id')
         .eq('username', username)

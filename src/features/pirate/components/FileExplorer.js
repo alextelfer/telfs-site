@@ -10,18 +10,7 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
 
-  useEffect(() => {
-    fetchFoldersAndFiles();
-    buildBreadcrumbs();
-    
-    // Listen for file upload events
-    const handleFilesUpdated = () => fetchFoldersAndFiles();
-    window.addEventListener('files-updated', handleFilesUpdated);
-    
-    return () => window.removeEventListener('files-updated', handleFilesUpdated);
-  }, [currentFolder]);
-
-  const buildBreadcrumbs = async () => {
+  const buildBreadcrumbs = React.useCallback(async () => {
     if (!currentFolder) {
       setBreadcrumbs([]);
       return;
@@ -46,9 +35,9 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
     }
     
     setBreadcrumbs(crumbs);
-  };
+  }, [currentFolder]);
 
-  const fetchFoldersAndFiles = async () => {
+  const fetchFoldersAndFiles = React.useCallback(async () => {
     setLoading(true);
     
     // Fetch folders in current directory
@@ -78,7 +67,18 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
     }
 
     setLoading(false);
-  };
+  }, [currentFolder]);
+
+  useEffect(() => {
+    fetchFoldersAndFiles();
+    buildBreadcrumbs();
+    
+    // Listen for file upload events
+    const handleFilesUpdated = () => fetchFoldersAndFiles();
+    window.addEventListener('files-updated', handleFilesUpdated);
+    
+    return () => window.removeEventListener('files-updated', handleFilesUpdated);
+  }, [currentFolder, fetchFoldersAndFiles, buildBreadcrumbs]);
 
   const handleCreateFolder = async (folderName) => {
     const { data: { user } } = await supabase.auth.getUser();

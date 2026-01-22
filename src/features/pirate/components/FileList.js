@@ -1,5 +1,4 @@
 import React from 'react';
-import { supabase } from '../../../lib/supabaseClient';
 
 const FileList = ({ files, onDelete }) => {
   const [downloadingFiles, setDownloadingFiles] = React.useState(new Set());
