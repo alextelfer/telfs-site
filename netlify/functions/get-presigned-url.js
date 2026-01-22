@@ -6,7 +6,7 @@ const b2 = new B2({
 });
 
 export const handler = async (event) => {
-  const { userId, fileName, mimeType } = JSON.parse(event.body || '{}');
+  const { userId, fileName, mimeType, folderId } = JSON.parse(event.body || '{}');
 
   if (!userId || !fileName) {
     return { statusCode: 400, body: 'Missing userId or fileName' };
@@ -16,12 +16,16 @@ export const handler = async (event) => {
     await b2.authorize();
     const uploadUrlData = await b2.getUploadUrl({ bucketId: process.env.B2_BUCKET_ID });
 
+    // Create path with folder structure
+    const folderPath = folderId ? `${userId}/${folderId}` : userId;
+    const uploadPath = `${folderPath}/${Date.now()}-${fileName}`;
+
     return {
       statusCode: 200,
       body: JSON.stringify({
         uploadUrl: uploadUrlData.data.uploadUrl,
         authorizationToken: uploadUrlData.data.authorizationToken,
-        uploadPath: `${userId}/${Date.now()}-${fileName}`,
+        uploadPath,
       }),
     };
   } catch (error) {

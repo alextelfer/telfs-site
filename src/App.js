@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import RSVP from './pages/RSVP';
 import Birthday from './pages/Birthday';
-import PhotoPage from './features/photos/PhotoPage';
+import PiratePage from './features/pirate/PiratePage';
 import SignIn from './features/auth/SignIn';
 
 function App() {
@@ -12,7 +12,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/rsvp" element={<RSVP />} />
         <Route path="/birthday" element={<Birthday />} />
-        <Route path="/photos" element={<PhotoPage />} />
+        <Route path="/piracy_is_cool" element={<PiratePage />} />
         <Route path="/signin" element={<SignIn />} />
       </Routes>
     </Router>
