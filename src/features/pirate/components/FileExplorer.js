@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
-import FolderTree from './FolderTree';
 import FileList from './FileList';
 import CreateFolderModal from './CreateFolderModal';
 
