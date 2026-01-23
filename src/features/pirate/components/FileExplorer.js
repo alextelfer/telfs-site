@@ -41,29 +41,69 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
     setLoading(true);
     
     // Fetch folders in current directory
-    const { data: foldersData, error: foldersError } = await supabase
+    let foldersQuery = supabase
       .from('folders')
-      .select('*, created_by(username)')
-      .eq('parent_id', currentFolder || null)
-      .order('name');
+      .select('*');
+    
+    if (currentFolder) {
+      foldersQuery = foldersQuery.eq('parent_id', currentFolder);
+    } else {
+      foldersQuery = foldersQuery.is('parent_id', null);
+    }
+    
+    const { data: foldersData, error: foldersError } = await foldersQuery.order('name');
 
     if (foldersError) {
       console.error('Error fetching folders:', foldersError);
     } else {
-      setFolders(foldersData || []);
+      // Fetch usernames for folders
+      const foldersWithUsernames = await Promise.all(
+        (foldersData || []).map(async (folder) => {
+          if (folder.created_by) {
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('username')
+              .eq('id', folder.created_by)
+              .single();
+            return { ...folder, created_by_username: profile?.username || 'Unknown' };
+          }
+          return { ...folder, created_by_username: 'Unknown' };
+        })
+      );
+      setFolders(foldersWithUsernames);
     }
 
     // Fetch files in current directory
-    const { data: filesData, error: filesError } = await supabase
+    let filesQuery = supabase
       .from('files')
-      .select('*, uploaded_by(username)')
-      .eq('folder_id', currentFolder || null)
-      .order('created_at', { ascending: false });
+      .select('*');
+    
+    if (currentFolder) {
+      filesQuery = filesQuery.eq('folder_id', currentFolder);
+    } else {
+      filesQuery = filesQuery.is('folder_id', null);
+    }
+    
+    const { data: filesData, error: filesError } = await filesQuery.order('created_at', { ascending: false });
 
     if (filesError) {
       console.error('Error fetching files:', filesError);
     } else {
-      setFiles(filesData || []);
+      // Fetch usernames for files
+      const filesWithUsernames = await Promise.all(
+        (filesData || []).map(async (file) => {
+          if (file.uploaded_by) {
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('username')
+              .eq('id', file.uploaded_by)
+              .single();
+            return { ...file, uploaded_by_username: profile?.username || 'Unknown' };
+          }
+          return { ...file, uploaded_by_username: 'Unknown' };
+        })
+      );
+      setFiles(filesWithUsernames);
     }
 
     setLoading(false);
@@ -213,7 +253,7 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
                   <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📁</div>
                   <div style={{ fontWeight: 'bold' }}>{folder.name}</div>
                   <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
-                    by {folder.created_by?.username || 'Unknown'}
+                    by {folder.created_by_username}
                   </div>
                 </div>
                 <button

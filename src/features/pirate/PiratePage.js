@@ -8,6 +8,7 @@ const PiratePage = () => {
   const [user, setUser] = useState(null);
   const [currentFolder, setCurrentFolder] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [username, setUsername] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,6 +28,7 @@ const PiratePage = () => {
         
         if (profile) {
           setIsAdmin(profile.is_admin || false);
+          setUsername(profile.username || '');
         }
       }
     };
@@ -52,9 +54,9 @@ const PiratePage = () => {
         alignItems: 'center',
         borderBottom: '2px solid #444'
       }}>
-        <h1 style={{ margin: 0 }}>🏴‍☠️ PiratePage</h1>
+        <h1 style={{ margin: 0 }}>piracy with my friends :)</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span>Welcome, {user.email}</span>
+          <span>Welcome, {username}</span>
           {isAdmin && <span style={{ background: '#dc3545', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>ADMIN</span>}
           <button 
             onClick={handleSignOut}

@@ -49,7 +49,7 @@ const SignIn = () => {
 
     try {
       // Verify the OTP token
-      const { data, error } = await supabase.auth.verifyOtp({
+      const {  error } = await supabase.auth.verifyOtp({
         email: email,
         token: otp,
         type: 'email'
@@ -70,12 +70,12 @@ const SignIn = () => {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '400px', margin: '0 auto' }}>
-      <h2>🏴‍☠️ PiratePage Sign In</h2>
+      <h2>piracy is cool again</h2>
       
       {step === 'email' ? (
         <form onSubmit={handleRequestOTP}>
           <div style={{ marginBottom: '1rem' }}>
-            <label htmlFor="email">Email:</label>
+            <label htmlFor="email">email:</label>
             <input
               id="email"
               type="email"
@@ -91,7 +91,7 @@ const SignIn = () => {
             disabled={sending}
             style={{ width: '100%', padding: '0.75rem', cursor: sending ? 'not-allowed' : 'pointer' }}
           >
-            {sending ? 'Sending...' : 'Request OTP'}
+            {sending ? 'Sending...' : 'gimme link'}
           </button>
         </form>
       ) : (
@@ -140,9 +140,6 @@ const SignIn = () => {
           {message}
         </p>
       )}
-      <div style={{ marginTop: '2rem', padding: '1rem', background: '#fff3cd', borderRadius: '4px' }}>
-        <strong>📧 Note:</strong> Enter your email address to receive a magic link. Click the link in your email to sign in instantly. For username-based login, run the app with <code>netlify dev</code>.
-      </div>
     </div>
   );
 };

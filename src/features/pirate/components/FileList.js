@@ -103,7 +103,7 @@ const FileList = ({ files, onDelete }) => {
                 {file.file_name}
               </div>
               <div style={{ fontSize: '0.85rem', color: '#888' }}>
-                {formatFileSize(file.file_size)} • Uploaded by {file.uploaded_by?.username || 'Unknown'} • {new Date(file.created_at).toLocaleDateString()}
+                {formatFileSize(file.file_size)} • Uploaded by {file.uploaded_by_username} • {new Date(file.created_at).toLocaleDateString()}
               </div>
             </div>
           </div>
