@@ -6,10 +6,30 @@ const b2 = new B2({
 });
 
 export const handler = async (event) => {
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      },
+      body: ''
+    };
+  }
+
   const { userId, fileName, mimeType, folderId } = JSON.parse(event.body || '{}');
 
   if (!userId || !fileName) {
-    return { statusCode: 400, body: 'Missing userId or fileName' };
+    return { 
+      statusCode: 400, 
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ error: 'Missing userId or fileName' })
+    };
   }
 
   try {
@@ -22,6 +42,10 @@ export const handler = async (event) => {
 
     return {
       statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({
         uploadUrl: uploadUrlData.data.uploadUrl,
         authorizationToken: uploadUrlData.data.authorizationToken,
@@ -31,6 +55,10 @@ export const handler = async (event) => {
   } catch (error) {
     return {
       statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ error: error.message }),
     };
   }
