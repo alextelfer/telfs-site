@@ -21,50 +21,25 @@ const UploadForm = ({ currentFolder, onUploadComplete }) => {
     if (!file || !userId) return;
 
     setUploading(true);
-    setStatus('Requesting upload URL...');
+    setStatus(`Uploading ${file.name}...`);
     setProgress(10);
 
     try {
-      // 1. Request presigned URL from Netlify function
-      const res = await fetch('/.netlify/functions/get-presigned-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          fileName: file.name,
-          mimeType: file.type,
-          folderId: currentFolder,
-        }),
+      // Convert file to base64
+      const fileData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result.split(',')[1]; // Remove data:...;base64, prefix
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
 
-      const { uploadUrl, authorizationToken, uploadPath } = await res.json();
       setProgress(30);
 
-      // 2. Upload to B2
-      setStatus(`Uploading ${file.name}...`);
-
-      const b2UploadRes = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: authorizationToken,
-          'X-Bz-File-Name': encodeURIComponent(uploadPath),
-          'Content-Type': file.type || 'application/octet-stream',
-          'X-Bz-Content-Sha1': 'do_not_verify',
-        },
-        body: file,
-      });
-
-      if (!b2UploadRes.ok) {
-        throw new Error(`B2 upload failed: ${b2UploadRes.statusText}`);
-      }
-
-      setProgress(70);
-
-      // 3. Store metadata in Supabase
-      setStatus('Storing file metadata...');
-      const metaRes = await fetch('/.netlify/functions/store-file-metadata', {
+      // Upload through Netlify function (which uploads to B2 and stores metadata)
+      const res = await fetch('/.netlify/functions/upload', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,15 +47,15 @@ const UploadForm = ({ currentFolder, onUploadComplete }) => {
         body: JSON.stringify({
           userId,
           fileName: file.name,
-          filePath: uploadPath,
+          fileData,
           fileType: file.type || 'application/octet-stream',
           fileSize: file.size,
           folderId: currentFolder,
         }),
       });
 
-      const metaJson = await metaRes.json();
-      if (!metaRes.ok) throw new Error(metaJson.error);
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Upload failed');
 
       setProgress(100);
       setStatus(`✅ ${file.name} uploaded successfully!`);

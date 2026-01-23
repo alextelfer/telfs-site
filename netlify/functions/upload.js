@@ -1,9 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import B2 from 'backblaze-b2';
-import formidable from 'formidable';
-import fs from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -15,59 +11,101 @@ const b2 = new B2({
   applicationKey: process.env.B2_APP_KEY,
 });
 
-// Netlify function expects a handler like this
-export const handler = async (event, context) => {
+export const handler = async (event) => {
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      },
+      body: ''
+    };
+  }
+
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      body: 'Method Not Allowed',
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ error: 'Method Not Allowed' }),
     };
   }
 
   try {
-    const form = formidable({ keepExtensions: true });
-    const data = await new Promise((resolve, reject) => {
-      form.parse(event, (err, fields, files) => {
-        if (err) reject(err);
-        else resolve({ fields, files });
-      });
-    });
+    // Parse multipart form data (Netlify automatically parses it)
+    const { userId, fileName, folderId, fileData, fileType, fileSize } = JSON.parse(event.body);
 
-    const file = data.files.file[0];
-    const userId = data.fields.userId[0];
+    if (!userId || !fileName || !fileData) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: 'Missing required fields' }),
+      };
+    }
 
+    // Authorize with B2
     await b2.authorize();
     const uploadUrlData = await b2.getUploadUrl({
       bucketId: process.env.B2_BUCKET_ID,
     });
 
-    const fileStream = fs.createReadStream(file.filepath);
-    const uploadPath = `${userId}/${uuidv4()}-${file.originalFilename}`;
+    // Create path with folder structure
+    const folderPath = folderId ? `${userId}/${folderId}` : userId;
+    const uploadPath = `${folderPath}/${Date.now()}-${fileName}`;
 
+    // Convert base64 to buffer
+    const fileBuffer = Buffer.from(fileData, 'base64');
+
+    // Upload to B2
     await b2.uploadFile({
       uploadUrl: uploadUrlData.data.uploadUrl,
       uploadAuthToken: uploadUrlData.data.authorizationToken,
       fileName: uploadPath,
-      data: fileStream,
-      contentType: file.mimetype,
+      data: fileBuffer,
+      contentType: fileType || 'application/octet-stream',
     });
 
-    await supabase.from('photos').insert([
+    // Store metadata in Supabase
+    const { error } = await supabase.from('files').insert([
       {
-        user_id: userId,
-        file_name: file.originalFilename,
+        uploaded_by: userId,
+        file_name: fileName,
         file_path: uploadPath,
+        file_type: fileType || 'application/octet-stream',
+        file_size: fileSize || 0,
+        folder_id: folderId || null,
       },
     ]);
 
+    if (error) throw error;
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'Upload successful', path: uploadPath }),
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        message: 'Upload successful', 
+        path: uploadPath 
+      }),
     };
   } catch (err) {
     console.error('Upload failed:', err);
     return {
       statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ error: err.message }),
     };
   }
