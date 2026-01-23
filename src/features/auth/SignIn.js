@@ -26,8 +26,12 @@ const SignIn = () => {
       });
 
       if (error) {
-        if (error.message.includes('429') || error.status === 429) {
-          setMessage('Too many requests. Please wait a few minutes before trying again.');
+        // Check for rate limit error
+        if (error.message.includes('429') || 
+            error.status === 429 || 
+            error.message.includes('rate limit') ||
+            error.code === 'over_email_send_rate_limit') {
+          setMessage('⚠️ Email rate limit exceeded. Please wait 5-10 minutes before trying again. This is a security measure to prevent spam.');
         } else {
           setMessage(error.message);
         }
@@ -36,7 +40,12 @@ const SignIn = () => {
         setStep('otp');
       }
     } catch (err) {
-      setMessage(`Error: ${err.message}`);
+      // Network or other errors
+      if (err.message.includes('NetworkError') || err.message.includes('fetch')) {
+        setMessage('❌ Network error. Please check your internet connection and try again.');
+      } else {
+        setMessage(`Error: ${err.message}`);
+      }
     }
 
     setSending(false);
