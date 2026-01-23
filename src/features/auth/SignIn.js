@@ -3,9 +3,9 @@ import { supabase } from '../../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
 const SignIn = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('username'); // 'username' or 'otp'
+  const [step, setStep] = useState('email'); // 'email' or 'otp'
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
@@ -16,41 +16,23 @@ const SignIn = () => {
     setMessage('');
 
     try {
-      // First, find user by username
-      const { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('username', username)
-        .single();
-
-      if (profileError || !profile) {
-        setMessage('Username not found. Please check and try again.');
-        setSending(false);
-        return;
-      }
-
-      // Get the email from auth.users (need to call a function for this)
-      const { data: user, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-      
-      if (userError || !user) {
-        // Fallback: use Supabase OTP with email (you'll need to handle this differently)
-        setMessage('Unable to send OTP. Please contact administrator.');
-        setSending(false);
-        return;
-      }
-
-      // Send OTP to email
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: user.user.email,
+      // Send OTP directly with Supabase
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
         options: {
           shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}/piracy_is_cool`,
         }
       });
 
-      if (otpError) {
-        setMessage(otpError.message);
+      if (error) {
+        if (error.message.includes('429') || error.status === 429) {
+          setMessage('Too many requests. Please wait a few minutes before trying again.');
+        } else {
+          setMessage(error.message);
+        }
       } else {
-        setMessage('Check your email for the one-time password!');
+        setMessage('Check your email for the magic link! Click the link to sign in, or enter the 6-digit code if provided.');
         setStep('otp');
       }
     } catch (err) {
@@ -66,23 +48,9 @@ const SignIn = () => {
     setMessage('');
 
     try {
-      // Get user profile to find email
-      const { error: profileError } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('username', username)
-        .single();
-
-      if (profileError) {
-        setMessage('Invalid username.');
-        setSending(false);
-        return;
-      }
-
-      // For OTP verification, we need the email - this is a simplified approach
-      // In production, you'd want a backend function to handle this
-      const { error } = await supabase.auth.verifyOtp({
-        email: otp, // This won't work as-is - see README for proper implementation
+      // Verify the OTP token
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email,
         token: otp,
         type: 'email'
       });
@@ -91,7 +59,7 @@ const SignIn = () => {
         setMessage('Invalid OTP. Please try again.');
       } else {
         setMessage('Login successful!');
-        navigate('/piracy_is_cool');
+        setTimeout(() => navigate('/piracy_is_cool'), 1000);
       }
     } catch (err) {
       setMessage(`Error: ${err.message}`);
@@ -104,18 +72,18 @@ const SignIn = () => {
     <div style={{ padding: '2rem', maxWidth: '400px', margin: '0 auto' }}>
       <h2>🏴‍☠️ PiratePage Sign In</h2>
       
-      {step === 'username' ? (
+      {step === 'email' ? (
         <form onSubmit={handleRequestOTP}>
           <div style={{ marginBottom: '1rem' }}>
-            <label htmlFor="username">Username:</label>
+            <label htmlFor="email">Email:</label>
             <input
-              id="username"
-              type="text"
+              id="email"
+              type="email"
               required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               style={{ width: '100%', padding: '0.5rem', marginTop: '0.5rem' }}
-              placeholder="Enter your username"
+              placeholder="Enter your email"
             />
           </div>
           <button 
@@ -128,19 +96,21 @@ const SignIn = () => {
         </form>
       ) : (
         <form onSubmit={handleVerifyOTP}>
-          <p>OTP sent to your email associated with <strong>{username}</strong></p>
+          <p>OTP sent to <strong>{email}</strong></p>
           <div style={{ marginBottom: '1rem' }}>
-            <label htmlFor="otp">One-Time Password:</label>
+            <label htmlFor="otp">One-Time Password (optional):</label>
             <input
               id="otp"
               type="text"
-              required
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               style={{ width: '100%', padding: '0.5rem', marginTop: '0.5rem' }}
-              placeholder="Enter 6-digit code"
+              placeholder="Enter 6-digit code (or use magic link)"
               maxLength="6"
             />
+            <small style={{ display: 'block', marginTop: '0.5rem', color: '#666' }}>
+              You can click the magic link in your email, or enter the code if provided.
+            </small>
           </div>
           <button 
             type="submit" 
@@ -151,10 +121,10 @@ const SignIn = () => {
           </button>
           <button 
             type="button"
-            onClick={() => { setStep('username'); setOtp(''); setMessage(''); }}
+            onClick={() => { setStep('email'); setOtp(''); setMessage(''); }}
             style={{ width: '100%', padding: '0.5rem', background: '#6c757d' }}
           >
-            Back to Username
+            Back to Email
           </button>
         </form>
       )}
@@ -170,9 +140,8 @@ const SignIn = () => {
           {message}
         </p>
       )}
-      
       <div style={{ marginTop: '2rem', padding: '1rem', background: '#fff3cd', borderRadius: '4px' }}>
-        <strong>⚠️ Note:</strong> This authentication requires backend modifications. See README for full implementation details.
+        <strong>📧 Note:</strong> Enter your email address to receive a magic link. Click the link in your email to sign in instantly. For username-based login, run the app with <code>netlify dev</code>.
       </div>
     </div>
   );
