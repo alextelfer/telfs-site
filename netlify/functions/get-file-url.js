@@ -66,7 +66,6 @@ export const handler = async (event) => {
     const bucketName = process.env.B2_BUCKET_NAME;
     const downloadUrl = `https://f004.backblazeb2.com/file/${bucketName}/${filePath}`;
     
-    const fetch = (await import('node-fetch')).default;
     const fileResponse = await fetch(downloadUrl, {
       headers: {
         'Authorization': downloadAuth.data.authorizationToken
@@ -77,7 +76,8 @@ export const handler = async (event) => {
       throw new Error(`Failed to download file from B2: ${fileResponse.status} ${fileResponse.statusText}`);
     }
 
-    const fileBuffer = await fileResponse.buffer();
+    const arrayBuffer = await fileResponse.arrayBuffer();
+    const fileBuffer = Buffer.from(arrayBuffer);
     const contentType = fileResponse.headers.get('content-type') || 'application/octet-stream';
 
     // Return file with proper headers
