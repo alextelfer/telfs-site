@@ -52,7 +52,18 @@ export const handler = async (event) => {
     }
 
     // Authorize with B2
-    await b2.authorize();
+    console.log('Attempting B2 authorization...');
+    console.log('B2_KEY_ID exists:', !!process.env.B2_KEY_ID);
+    console.log('B2_APP_KEY exists:', !!process.env.B2_APP_KEY);
+    console.log('B2_BUCKET_ID exists:', !!process.env.B2_BUCKET_ID);
+    
+    try {
+      await b2.authorize();
+      console.log('B2 authorization successful');
+    } catch (b2Error) {
+      console.error('B2 authorization failed:', b2Error.message);
+      throw new Error(`B2 API key invalid or expired: ${b2Error.message}`);
+    }
     const uploadUrlData = await b2.getUploadUrl({
       bucketId: process.env.B2_BUCKET_ID,
     });

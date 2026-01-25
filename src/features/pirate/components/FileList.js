@@ -1,7 +1,9 @@
 import React from 'react';
+import { useAuth } from '../../../lib/AuthContext';
 
 const FileList = ({ files, onDelete }) => {
   const [downloadingFiles, setDownloadingFiles] = React.useState(new Set());
+  const { session } = useAuth();
 
   const getFileIcon = (fileType) => {
     if (!fileType) return '📄';
@@ -35,6 +37,7 @@ const FileList = ({ files, onDelete }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({
           filePath: file.file_path,
