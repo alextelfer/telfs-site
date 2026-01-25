@@ -25,82 +25,23 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
     setProgress(10);
 
     try {
-      // Step 1: Get presigned URL from backend
-      setStatus('Preparing upload...');
-      const presignedRes = await fetch('/.netlify/functions/get-presigned-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          fileName: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          folderId: currentFolder,
-        }),
-      });
+      // For files under 10MB, try direct upload (requires B2 CORS config)
+      // For larger files, or if direct fails, use proxy
+      const useDirectUpload = file.size < 10 * 1024 * 1024; // 10MB threshold
 
-      if (!presignedRes.ok) {
-        const error = await presignedRes.json();
-        throw new Error(error.error || 'Failed to prepare upload');
+      if (useDirectUpload) {
+        try {
+          await uploadDirect();
+          return;
+        } catch (err) {
+          console.log('Direct upload failed, falling back to proxy:', err.message);
+          setProgress(10); // Reset progress
+        }
       }
 
-      const { uploadUrl, authorizationToken, uploadPath } = await presignedRes.json();
-      setProgress(20);
+      // Fallback or default: Upload via proxy
+      await uploadViaProxy();
 
-      // Step 2: Upload file directly to B2
-      setStatus(`Uploading ${file.name} to storage...`);
-      
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': authorizationToken,
-          'Content-Type': file.type || 'application/octet-stream',
-          'X-Bz-File-Name': uploadPath,
-          'X-Bz-Content-Sha1': 'do_not_verify', // Skip SHA1 verification for speed
-        },
-        body: file,
-      });
-
-      if (!uploadRes.ok) {
-        const errorText = await uploadRes.text();
-        throw new Error(`Upload to storage failed: ${errorText}`);
-      }
-
-      setProgress(80);
-
-      // Step 3: Store metadata in database
-      setStatus('Saving file information...');
-      const metadataRes = await fetch('/.netlify/functions/store-file-metadata', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          fileName: file.name,
-          filePath: uploadPath,
-          fileType: file.type || 'application/octet-stream',
-          fileSize: file.size,
-          folderId: currentFolder,
-        }),
-      });
-
-      if (!metadataRes.ok) {
-        const error = await metadataRes.json();
-        throw new Error(error.error || 'Failed to save file information');
-      }
-      setProgress(100);
-      setStatus(`✅ ${file.name} uploaded successfully!`);
-      setFile(null);
-      
-      // Reset file input
-      e.target.reset();
-      
-      // Notify parent to refresh
-      if (onUploadComplete) {
-        onUploadComplete();
-      }
     } catch (err) {
       console.error(err);
       setStatus(`❌ Upload failed: ${err.message}`);
@@ -113,6 +54,133 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
           setStatus('');
         }
       }, 3000);
+    }
+  };
+
+  const uploadDirect = async () => {
+    // Step 1: Get presigned URL from backend
+    setStatus('Preparing upload...');
+    const presignedRes = await fetch('/.netlify/functions/get-presigned-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId,
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        folderId: currentFolder,
+      }),
+    });
+
+    if (!presignedRes.ok) {
+      const error = await presignedRes.json();
+      throw new Error(error.error || 'Failed to prepare upload');
+    }
+
+    const { uploadUrl, authorizationToken, uploadPath } = await presignedRes.json();
+    setProgress(20);
+
+    // Step 2: Upload file directly to B2
+    setStatus(`Uploading ${file.name} directly to storage...`);
+    
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': authorizationToken,
+        'Content-Type': file.type || 'application/octet-stream',
+        'X-Bz-File-Name': uploadPath,
+        'X-Bz-Content-Sha1': 'do_not_verify',
+      },
+      body: file,
+    });
+
+    if (!uploadRes.ok) {
+      const errorText = await uploadRes.text();
+      throw new Error(`Direct upload failed: ${errorText}`);
+    }
+
+    setProgress(80);
+
+    // Step 3: Store metadata in database
+    setStatus('Saving file information...');
+    const metadataRes = await fetch('/.netlify/functions/store-file-metadata', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId,
+        fileName: file.name,
+        filePath: uploadPath,
+        fileType: file.type || 'application/octet-stream',
+        fileSize: file.size,
+        folderId: currentFolder,
+      }),
+    });
+
+    if (!metadataRes.ok) {
+      const error = await metadataRes.json();
+      throw new Error(error.error || 'Failed to save file information');
+    }
+
+    setProgress(100);
+    setStatus(`✅ ${file.name} uploaded successfully!`);
+    setFile(null);
+    
+    // Reset file input
+    if (e && e.target) {
+      e.target.reset();
+    }
+    
+    // Notify parent to refresh
+    if (onUploadComplete) {
+      onUploadComplete();
+    }
+  };
+
+  const uploadViaProxy = async () => {
+    setStatus(`Uploading ${file.name} via proxy (may take longer for large files)...`);
+    setProgress(20);
+
+    // For files under 5MB, use direct binary upload
+    // For larger files, we need chunking (not implemented here, but proxy handles up to Netlify's limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setStatus(`⚠️ Large file detected. This may take several minutes...`);
+    }
+
+    const uploadRes = await fetch('/.netlify/functions/upload-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-User-Id': userId,
+        'X-File-Name': file.name,
+        'X-File-Type': file.type || 'application/octet-stream',
+        'X-File-Size': file.size.toString(),
+        'X-Folder-Id': currentFolder || '',
+      },
+      body: file,
+    });
+
+    if (!uploadRes.ok) {
+      let errorMessage = 'Upload failed';
+      try {
+        const result = await uploadRes.json();
+        errorMessage = result.error || errorMessage;
+      } catch (parseError) {
+        const textError = await uploadRes.text();
+        errorMessage = textError || `Server error (${uploadRes.status})`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    setProgress(100);
+    setStatus(`✅ ${file.name} uploaded successfully!`);
+    setFile(null);
+    
+    // Notify parent to refresh
+    if (onUploadComplete) {
+      onUploadComplete();
     }
   };
 
