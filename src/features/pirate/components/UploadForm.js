@@ -34,8 +34,8 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
       } catch (err) {
         console.log('Direct upload failed:', err.message);
         
-        // Only fallback to proxy for small files (under 10MB)
-        if (file.size < 10 * 1024 * 1024) {
+        // Only fallback to proxy for small files (under 6MB - Netlify's function payload limit)
+        if (file.size < 6 * 1024 * 1024) {
           console.log('Falling back to proxy upload...');
           setProgress(10); // Reset progress
           await uploadViaProxy();
@@ -138,8 +138,8 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
   };
 
   const uploadViaProxy = async () => {
-    // Netlify functions have ~10MB payload limit for binary data
-    const maxProxySize = 10 * 1024 * 1024;
+    // Netlify functions have a 6MB payload limit for synchronous function calls
+    const maxProxySize = 6 * 1024 * 1024;
     if (file.size > maxProxySize) {
       throw new Error(`File is too large for proxy upload (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is ${(maxProxySize / 1024 / 1024)}MB. Please enable CORS on your B2 bucket for direct uploads.`);
     }
@@ -170,21 +170,24 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
       let errorMessage = 'Upload failed';
       const contentType = uploadRes.headers.get('content-type');
       
-      if (contentType && contentType.includes('application/json')) {
-        try {
-          const result = await uploadRes.json();
-          errorMessage = result.error || errorMessage;
-        } catch (parseError) {
-          errorMessage = `Server error (${uploadRes.status})`;
+      try {
+        // Read the response body only once
+        const responseText = await uploadRes.text();
+        
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const result = JSON.parse(responseText);
+            errorMessage = result.error || errorMessage;
+          } catch (parseError) {
+            errorMessage = responseText || `Server error (${uploadRes.status})`;
+          }
+        } else {
+          errorMessage = responseText || `Server error (${uploadRes.status})`;
         }
-      } else {
-        try {
-          const textError = await uploadRes.text();
-          errorMessage = textError || `Server error (${uploadRes.status})`;
-        } catch (parseError) {
-          errorMessage = `Server error (${uploadRes.status})`;
-        }
+      } catch (parseError) {
+        errorMessage = `Server error (${uploadRes.status})`;
       }
+      
       throw new Error(errorMessage);
     }
 
