@@ -53,17 +53,22 @@ export const handler = async (event) => {
 
   try {
     // Authorize with B2
+    console.log('Authorizing with B2...');
     const authResponse = await b2.authorize();
+    console.log('B2 Auth successful, downloadUrl:', authResponse.data.downloadUrl);
 
     // Get download authorization
+    console.log('Getting download authorization for filePath:', filePath);
     const downloadAuth = await b2.getDownloadAuthorization({
       bucketId: process.env.B2_BUCKET_ID,
       fileNamePrefix: filePath,
       validDurationInSeconds: 3600,
     });
+    console.log('Download auth successful');
 
     // Download file from B2 using the correct download URL from authorization
     const downloadUrl = `${authResponse.data.downloadUrl}/file/${process.env.B2_BUCKET_NAME}/${filePath}`;
+    console.log('Attempting to download from URL:', downloadUrl);
     
     const fileResponse = await fetch(downloadUrl, {
       headers: {
@@ -71,13 +76,19 @@ export const handler = async (event) => {
       }
     });
 
+    console.log('B2 response status:', fileResponse.status);
+
     if (!fileResponse.ok) {
+      const errorText = await fileResponse.text();
+      console.error('B2 error response:', errorText);
       throw new Error(`Failed to download file from B2: ${fileResponse.status} ${fileResponse.statusText}`);
     }
 
     const arrayBuffer = await fileResponse.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
     const contentType = fileResponse.headers.get('content-type') || 'application/octet-stream';
+
+    console.log('File downloaded successfully, size:', fileBuffer.length);
 
     // Return file with proper headers
     return {
