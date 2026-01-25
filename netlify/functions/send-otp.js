@@ -57,11 +57,16 @@ export const handler = async (event) => {
     }
 
     // 3. Send OTP via Supabase Auth
+    // Use localhost in development, production URL otherwise
+    const baseUrl = process.env.NETLIFY_DEV === 'true' 
+      ? 'http://localhost:8888' 
+      : (process.env.URL || 'http://localhost:3000');
+    
     const { error: otpError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: user.email,
       options: {
-        redirectTo: `${process.env.URL || 'http://localhost:3000'}/piracy_is_cool`
+        redirectTo: `${baseUrl}/piracy_is_cool`
       }
     });
 

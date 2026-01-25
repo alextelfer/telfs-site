@@ -53,7 +53,7 @@ export const handler = async (event) => {
 
   try {
     // Authorize with B2
-    await b2.authorize();
+    const authResponse = await b2.authorize();
 
     // Get download authorization
     const downloadAuth = await b2.getDownloadAuthorization({
@@ -62,9 +62,8 @@ export const handler = async (event) => {
       validDurationInSeconds: 3600,
     });
 
-    // Download file from B2
-    const bucketName = process.env.B2_BUCKET_NAME;
-    const downloadUrl = `https://f004.backblazeb2.com/file/${bucketName}/${filePath}`;
+    // Download file from B2 using the correct download URL from authorization
+    const downloadUrl = `${authResponse.data.downloadUrl}/file/${process.env.B2_BUCKET_NAME}/${filePath}`;
     
     const fileResponse = await fetch(downloadUrl, {
       headers: {
