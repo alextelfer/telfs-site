@@ -9,6 +9,7 @@ const PiratePage = () => {
   const [currentFolder, setCurrentFolder] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState('');
+  const [isUploadExpanded, setIsUploadExpanded] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,18 +77,23 @@ const PiratePage = () => {
 
       {/* Main Content */}
       <div style={{ padding: '2rem' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <UploadForm currentFolder={currentFolder} onUploadComplete={() => {
-            // Trigger refresh in FileExplorer
-            window.dispatchEvent(new Event('files-updated'));
-          }} />
-        </div>
-        
         <FileExplorer 
           currentFolder={currentFolder}
           onFolderChange={setCurrentFolder}
           isAdmin={isAdmin}
         />
+        
+        <div style={{ marginTop: '2rem' }}>
+          <UploadForm 
+            currentFolder={currentFolder} 
+            isExpanded={isUploadExpanded}
+            onToggle={() => setIsUploadExpanded(!isUploadExpanded)}
+            onUploadComplete={() => {
+              // Trigger refresh in FileExplorer
+              window.dispatchEvent(new Event('files-updated'));
+            }} 
+          />
+        </div>
       </div>
     </div>
   );

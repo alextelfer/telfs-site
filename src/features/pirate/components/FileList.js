@@ -77,7 +77,7 @@ const FileList = ({ files, onDelete }) => {
   if (files.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-        No files in this folder. Upload some files to get started! 🏴‍☠️
+        no files in this folder. upload some shit to get started! 🏴‍☠️
       </div>
     );
   }

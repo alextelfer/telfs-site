@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../../lib/AuthContext';
 
-const UploadForm = ({ currentFolder, onUploadComplete }) => {
+const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) => {
   const { session } = useAuth();
   const userId = session?.user?.id;
 
@@ -86,15 +86,35 @@ const UploadForm = ({ currentFolder, onUploadComplete }) => {
   return (
     <div style={{
       background: '#2d2d2d',
-      padding: '1.5rem',
       borderRadius: '8px',
-      border: '2px dashed #444'
+      border: '2px solid #444',
+      overflow: 'hidden'
     }}>
-      <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>
-        📤 Upload File {currentFolder && '(to current folder)'}
-      </h3>
-      
-      <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      {/* Collapsible Header */}
+      <div 
+        onClick={onToggle}
+        style={{
+          padding: '1rem 1.5rem',
+          background: '#353535',
+          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          userSelect: 'none'
+        }}
+      >
+        <h3 style={{ margin: 0 }}>
+          📤 Upload File {currentFolder && '(to current folder)'}
+        </h3>
+        <span style={{ fontSize: '1.5rem', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          ▼
+        </span>
+      </div>
+
+      {/* Expandable Content */}
+      {isExpanded && (
+        <div style={{ padding: '1.5rem' }}>
+          <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div>
           <input
             type="file"
@@ -173,8 +193,10 @@ const UploadForm = ({ currentFolder, onUploadComplete }) => {
         fontSize: '0.85rem',
         color: '#888'
       }}>
-        <strong>📝 Note:</strong> All file types are supported. Files are securely stored and only accessible to authenticated users.
+        <strong>📝 note for the homies:</strong> all file types are supported. files are securely stored and only accessible to authenticated users.
       </div>
+        </div>
+      )}
     </div>
   );
 };
