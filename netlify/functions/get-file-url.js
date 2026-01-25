@@ -57,7 +57,7 @@ export const handler = async (event) => {
     const authResponse = await b2.authorize();
     console.log('B2 Auth successful, downloadUrl:', authResponse.data.downloadUrl);
 
-    // Get download authorization
+    // Get download authorization token
     console.log('Getting download authorization for filePath:', filePath);
     const downloadAuth = await b2.getDownloadAuthorization({
       bucketId: process.env.B2_BUCKET_ID,
@@ -66,41 +66,23 @@ export const handler = async (event) => {
     });
     console.log('Download auth successful');
 
-    // Download file from B2 using the correct download URL from authorization
-    const downloadUrl = `${authResponse.data.downloadUrl}/file/${process.env.B2_BUCKET_NAME}/${filePath}`;
-    console.log('Attempting to download from URL:', downloadUrl);
+    // Generate the download URL with authorization token
+    const downloadUrl = `${authResponse.data.downloadUrl}/file/${process.env.B2_BUCKET_NAME}/${filePath}?Authorization=${downloadAuth.data.authorizationToken}`;
     
-    const fileResponse = await fetch(downloadUrl, {
-      headers: {
-        'Authorization': downloadAuth.data.authorizationToken
-      }
-    });
+    console.log('Generated download URL (without token for security)');
 
-    console.log('B2 response status:', fileResponse.status);
-
-    if (!fileResponse.ok) {
-      const errorText = await fileResponse.text();
-      console.error('B2 error response:', errorText);
-      throw new Error(`Failed to download file from B2: ${fileResponse.status} ${fileResponse.statusText}`);
-    }
-
-    const arrayBuffer = await fileResponse.arrayBuffer();
-    const fileBuffer = Buffer.from(arrayBuffer);
-    const contentType = fileResponse.headers.get('content-type') || 'application/octet-stream';
-
-    console.log('File downloaded successfully, size:', fileBuffer.length);
-
-    // Return file with proper headers
+    // Return the authorized download URL instead of proxying the file
     return {
       statusCode: 200,
       headers: {
-        'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${fileName || filePath.split('/').pop()}"`,
         'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
         'Cache-Control': 'no-cache'
       },
-      body: fileBuffer.toString('base64'),
-      isBase64Encoded: true
+      body: JSON.stringify({ 
+        downloadUrl,
+        fileName: fileName || filePath.split('/').pop()
+      })
     };
   } catch (error) {
     console.error('Error downloading file:', error);

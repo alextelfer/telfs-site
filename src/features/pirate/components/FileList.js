@@ -57,9 +57,8 @@ const FileList = ({ files, onDelete }) => {
         throw new Error('Failed to load preview');
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      setPreviewUrl(url);
+      const data = await response.json();
+      setPreviewUrl(data.downloadUrl);
     } catch (err) {
       console.error('Preview error:', err);
       alert(`Failed to preview file: ${err.message}`);
@@ -70,9 +69,7 @@ const FileList = ({ files, onDelete }) => {
   };
 
   const closePreview = () => {
-    if (previewUrl) {
-      window.URL.revokeObjectURL(previewUrl);
-    }
+    // No need to revoke URL since we're using B2's pre-signed URLs now
     setPreviewFile(null);
     setPreviewUrl(null);
   };
@@ -81,7 +78,7 @@ const FileList = ({ files, onDelete }) => {
     setDownloadingFiles(prev => new Set([...prev, file.id]));
     
     try {
-      // Request file download through backend (proxied)
+      // Get authorized download URL from backend
       const response = await fetch('/.netlify/functions/get-file-url', {
         method: 'POST',
         headers: {
@@ -99,17 +96,16 @@ const FileList = ({ files, onDelete }) => {
         throw new Error(errorData.error || 'Download failed');
       }
 
-      // Get the file blob from the response
-      const blob = await response.blob();
+      // Get the download URL from the response
+      const data = await response.json();
       
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
+      // Create download link using the pre-signed URL
       const a = document.createElement('a');
-      a.href = url;
-      a.download = file.file_name;
+      a.href = data.downloadUrl;
+      a.download = data.fileName || file.file_name;
+      a.target = '_blank'; // Open in new tab to trigger download
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
       console.error('Download error:', err);
