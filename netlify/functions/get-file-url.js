@@ -12,11 +12,28 @@ const supabase = createClient(
 );
 
 export const handler = async (event) => {
+  // Handle CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      },
+      body: ''
+    };
+  }
+
   // Verify user is authenticated
   const authHeader = event.headers.authorization;
   if (!authHeader) {
     return {
       statusCode: 401,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ error: 'Unauthorized' }),
     };
   }
@@ -25,7 +42,11 @@ export const handler = async (event) => {
 
   if (!filePath) {
     return { 
-      statusCode: 400, 
+      statusCode: 400,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ error: 'Missing filePath' }) 
     };
   }
@@ -38,24 +59,47 @@ export const handler = async (event) => {
     const downloadAuth = await b2.getDownloadAuthorization({
       bucketId: process.env.B2_BUCKET_ID,
       fileNamePrefix: filePath,
-      validDurationInSeconds: 3600, // URL valid for 1 hour
+      validDurationInSeconds: 3600,
     });
 
-    // Generate secure download URL
+    // Download file from B2
     const bucketName = process.env.B2_BUCKET_NAME;
-    const downloadUrl = `https://f004.backblazeb2.com/file/${bucketName}/${filePath}?Authorization=${downloadAuth.data.authorizationToken}`;
+    const downloadUrl = `https://f004.backblazeb2.com/file/${bucketName}/${filePath}`;
+    
+    const fetch = (await import('node-fetch')).default;
+    const fileResponse = await fetch(downloadUrl, {
+      headers: {
+        'Authorization': downloadAuth.data.authorizationToken
+      }
+    });
 
+    if (!fileResponse.ok) {
+      throw new Error(`Failed to download file from B2: ${fileResponse.status} ${fileResponse.statusText}`);
+    }
+
+    const fileBuffer = await fileResponse.buffer();
+    const contentType = fileResponse.headers.get('content-type') || 'application/octet-stream';
+
+    // Return file with proper headers
     return {
       statusCode: 200,
-      body: JSON.stringify({ 
-        downloadUrl,
-        fileName: fileName || filePath.split('/').pop()
-      }),
+      headers: {
+        'Content-Type': contentType,
+        'Content-Disposition': `attachment; filename="${fileName || filePath.split('/').pop()}"`,
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache'
+      },
+      body: fileBuffer.toString('base64'),
+      isBase64Encoded: true
     };
   } catch (error) {
-    console.error('Error generating download URL:', error);
+    console.error('Error downloading file:', error);
     return {
       statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify({ error: error.message }),
     };
   }

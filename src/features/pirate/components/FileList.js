@@ -32,7 +32,7 @@ const FileList = ({ files, onDelete }) => {
     setDownloadingFiles(prev => new Set([...prev, file.id]));
     
     try {
-      // Request secure download URL from backend
+      // Request file download through backend (proxied)
       const response = await fetch('/.netlify/functions/get-file-url', {
         method: 'POST',
         headers: {
@@ -45,15 +45,13 @@ const FileList = ({ files, onDelete }) => {
         }),
       });
 
-      const { downloadUrl, error } = await response.json();
-      
-      if (error) {
-        throw new Error(error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Download failed');
       }
 
-      // Download file
-      const fileResponse = await fetch(downloadUrl);
-      const blob = await fileResponse.blob();
+      // Get the file blob from the response
+      const blob = await response.blob();
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
