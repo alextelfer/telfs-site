@@ -41,7 +41,8 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
           await uploadViaProxy();
           e.target.reset(); // Reset form after successful upload
         } else {
-          throw new Error(`Direct upload failed and file is too large for proxy (${(file.size / 1024 / 1024).toFixed(1)}MB). Error: ${err.message}`);\n        }
+          throw new Error(`Direct upload failed and file is too large for proxy (${(file.size / 1024 / 1024).toFixed(1)}MB). Error: ${err.message}`);
+        }
       }
 
     } catch (err) {
