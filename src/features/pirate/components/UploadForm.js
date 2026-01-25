@@ -25,24 +25,24 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
     setProgress(10);
 
     try {
-      // For files under 10MB, try direct upload (requires B2 CORS config)
-      // For larger files, or if direct fails, use proxy
-      const useDirectUpload = file.size < 10 * 1024 * 1024; // 10MB threshold
-
-      if (useDirectUpload) {
-        try {
-          await uploadDirect();
-          e.target.reset(); // Reset form after successful upload
-          return;
-        } catch (err) {
-          console.log('Direct upload failed, falling back to proxy:', err.message);
+      // Try direct upload first (if CORS is configured on B2)
+      // Fallback to proxy only for small files if direct fails
+      try {
+        await uploadDirect();
+        e.target.reset(); // Reset form after successful upload
+        return;
+      } catch (err) {
+        console.log('Direct upload failed:', err.message);
+        
+        // Only fallback to proxy for small files (under 10MB)
+        if (file.size < 10 * 1024 * 1024) {
+          console.log('Falling back to proxy upload...');
           setProgress(10); // Reset progress
-        }
+          await uploadViaProxy();
+          e.target.reset(); // Reset form after successful upload
+        } else {
+          throw new Error(`Direct upload failed and file is too large for proxy (${(file.size / 1024 / 1024).toFixed(1)}MB). Error: ${err.message}`);\n        }
       }
-
-      // Fallback or default: Upload via proxy
-      await uploadViaProxy();
-      e.target.reset(); // Reset form after successful upload
 
     } catch (err) {
       console.error(err);
@@ -137,6 +137,12 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
   };
 
   const uploadViaProxy = async () => {
+    // Netlify functions have ~10MB payload limit for binary data
+    const maxProxySize = 10 * 1024 * 1024;
+    if (file.size > maxProxySize) {
+      throw new Error(`File is too large for proxy upload (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is ${(maxProxySize / 1024 / 1024)}MB. Please enable CORS on your B2 bucket for direct uploads.`);
+    }
+
     setStatus(`Uploading ${file.name} via proxy (may take longer for large files)...`);
     setProgress(20);
 
@@ -161,12 +167,22 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
 
     if (!uploadRes.ok) {
       let errorMessage = 'Upload failed';
-      try {
-        const result = await uploadRes.json();
-        errorMessage = result.error || errorMessage;
-      } catch (parseError) {
-        const textError = await uploadRes.text();
-        errorMessage = textError || `Server error (${uploadRes.status})`;
+      const contentType = uploadRes.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const result = await uploadRes.json();
+          errorMessage = result.error || errorMessage;
+        } catch (parseError) {
+          errorMessage = `Server error (${uploadRes.status})`;
+        }
+      } else {
+        try {
+          const textError = await uploadRes.text();
+          errorMessage = textError || `Server error (${uploadRes.status})`;
+        } catch (parseError) {
+          errorMessage = `Server error (${uploadRes.status})`;
+        }
       }
       throw new Error(errorMessage);
     }
