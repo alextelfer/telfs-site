@@ -179,55 +179,58 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
 
   return (
     <div style={{ background: '#2d2d2d', borderRadius: '8px', padding: '1.5rem' }}>
-      {/* Breadcrumbs */}
-      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <button
-          onClick={() => onFolderChange(null)}
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            color: '#66b3ff',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          🏴‍☠️ Root
-        </button>
-        {breadcrumbs.map((crumb, idx) => (
-          <React.Fragment key={crumb.id}>
-            <span style={{ color: '#666' }}>/</span>
-            <button
-              onClick={() => onFolderChange(crumb.id)}
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                color: '#66b3ff',
-                cursor: 'pointer',
-                fontSize: '1rem'
-              }}
-            >
-              {crumb.name}
-            </button>
-          </React.Fragment>
-        ))}
-      </div>
-
-      {/* Actions */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <button
-          onClick={() => setShowCreateFolder(true)}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: '#28a745',
-            border: 'none',
-            borderRadius: '4px',
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          ➕ Create Folder
-        </button>
+      {/* Breadcrumbs and Actions */}
+      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button
+            onClick={() => onFolderChange(null)}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: '#66b3ff',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            🏴‍☠️ Root
+          </button>
+          {breadcrumbs.map((crumb, idx) => (
+            <React.Fragment key={crumb.id}>
+              <span style={{ color: '#666' }}>/</span>
+              <button
+                onClick={() => onFolderChange(crumb.id)}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#66b3ff',
+                  cursor: 'pointer',
+                  fontSize: '1rem'
+                }}
+              >
+                {crumb.name}
+              </button>
+            </React.Fragment>
+          ))}
+        </div>
+        
+        {/* Create Folder Button - Admin Only */}
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreateFolder(true)}
+            style={{
+              padding: '0.4rem 0.8rem',
+              background: '#28a745',
+              border: 'none',
+              borderRadius: '4px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            ➕ New Folder
+          </button>
+        )}
       </div>
 
       {/* Folders */}

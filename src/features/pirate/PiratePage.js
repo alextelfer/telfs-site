@@ -76,7 +76,8 @@ const PiratePage = () => {
       </header>
 
       {/* Main Content */}
-      <div style={{ padding: '2rem' }}>
+      <div style={{ padding: '2rem', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '65vw', minWidth: '600px', maxWidth: '1400px' }}>
         <FileExplorer 
           currentFolder={currentFolder}
           onFolderChange={setCurrentFolder}
@@ -93,6 +94,7 @@ const PiratePage = () => {
               window.dispatchEvent(new Event('files-updated'));
             }} 
           />
+        </div>
         </div>
       </div>
     </div>

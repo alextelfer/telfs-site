@@ -3,6 +3,9 @@ import { useAuth } from '../../../lib/AuthContext';
 
 const FileList = ({ files, onDelete }) => {
   const [downloadingFiles, setDownloadingFiles] = React.useState(new Set());
+  const [previewFile, setPreviewFile] = React.useState(null);
+  const [previewUrl, setPreviewUrl] = React.useState(null);
+  const [loadingPreview, setLoadingPreview] = React.useState(false);
   const { session } = useAuth();
 
   const getFileIcon = (fileType) => {
@@ -26,6 +29,52 @@ const FileList = ({ files, onDelete }) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const handlePreview = async (file) => {
+    if (!file.file_type?.startsWith('image/') && !file.file_type?.startsWith('video/') && !file.file_type?.startsWith('audio/') && !file.file_type?.includes('pdf')) {
+      alert('Preview is only available for images, videos, audio, and PDF files.');
+      return;
+    }
+
+    setLoadingPreview(true);
+    setPreviewFile(file);
+    
+    try {
+      const response = await fetch('/.netlify/functions/get-file-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          filePath: file.file_path,
+          fileName: file.file_name
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load preview');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      setPreviewUrl(url);
+    } catch (err) {
+      console.error('Preview error:', err);
+      alert(`Failed to preview file: ${err.message}`);
+      setPreviewFile(null);
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const closePreview = () => {
+    if (previewUrl) {
+      window.URL.revokeObjectURL(previewUrl);
+    }
+    setPreviewFile(null);
+    setPreviewUrl(null);
   };
 
   const handleDownload = async (file) => {
@@ -83,8 +132,9 @@ const FileList = ({ files, onDelete }) => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      {files.map((file) => (
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {files.map((file) => (
         <div
           key={file.id}
           style={{
@@ -109,7 +159,23 @@ const FileList = ({ files, onDelete }) => {
             </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {(file.file_type?.startsWith('image/') || file.file_type?.startsWith('video/') || file.file_type?.startsWith('audio/') || file.file_type?.includes('pdf')) && (
+              <button
+                onClick={() => handlePreview(file)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: '#6c757d',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                👁️ View
+              </button>
+            )}
             <button
               onClick={() => handleDownload(file)}
               disabled={downloadingFiles.has(file.id)}
@@ -144,6 +210,100 @@ const FileList = ({ files, onDelete }) => {
         </div>
       ))}
     </div>
+
+      {/* Preview Modal */}
+      {previewFile && (
+        <div
+          onClick={closePreview}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '2rem',
+            cursor: 'pointer'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              background: '#2d2d2d',
+              borderRadius: '8px',
+              padding: '1rem',
+              display: 'flex',
+              flexDirection: 'column',
+              cursor: 'default'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0 }}>{previewFile.file_name}</h3>
+              <button
+                onClick={closePreview}
+                style={{
+                  background: '#dc3545',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  padding: '0.5rem 1rem',
+                  fontSize: '1rem'
+                }}
+              >
+                ✕ Close
+              </button>
+            </div>
+            
+            {loadingPreview ? (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>Loading preview...</div>
+            ) : previewUrl && (
+              <div style={{ overflow: 'auto', maxHeight: '80vh' }}>
+                {previewFile.file_type?.startsWith('image/') && (
+                  <img
+                    src={previewUrl}
+                    alt={previewFile.file_name}
+                    style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }}
+                  />
+                )}
+                {previewFile.file_type?.startsWith('video/') && (
+                  <video
+                    src={previewUrl}
+                    controls
+                    style={{ maxWidth: '100%', maxHeight: '80vh' }}
+                  >
+                    Your browser does not support the video tag.
+                  </video>
+                )}
+                {previewFile.file_type?.startsWith('audio/') && (
+                  <audio
+                    src={previewUrl}
+                    controls
+                    style={{ width: '100%' }}
+                  >
+                    Your browser does not support the audio tag.
+                  </audio>
+                )}
+                {previewFile.file_type?.includes('pdf') && (
+                  <iframe
+                    src={previewUrl}
+                    style={{ width: '80vw', height: '80vh', border: 'none' }}
+                    title={previewFile.file_name}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

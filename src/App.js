@@ -13,7 +13,7 @@ function App() {
         <Route path="/rsvp" element={<RSVP />} />
         <Route path="/birthday" element={<Birthday />} />
         <Route path="/piracy_is_cool" element={<PiratePage />} />
-        <Route path="/signin" element={<SignIn />} />
+        <Route path="/piracy" element={<SignIn />} />
       </Routes>
     </Router>
   );

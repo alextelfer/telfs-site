@@ -127,6 +127,8 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
               borderRadius: '4px',
               color: '#fff',
               width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
               cursor: uploading ? 'not-allowed' : 'pointer'
             }}
           />
@@ -193,7 +195,7 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
         fontSize: '0.85rem',
         color: '#888'
       }}>
-        <strong>📝 note for the homies:</strong> all file types are supported. files are securely stored and only accessible to authenticated users.
+        <strong>📝 note for the homies:</strong> files are securely stored and only accessible to authenticated users.
       </div>
         </div>
       )}
