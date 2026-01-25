@@ -12,6 +12,8 @@ const b2 = new B2({
 });
 
 export const handler = async (event) => {
+  console.log('Upload function invoked');
+  
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -37,8 +39,24 @@ export const handler = async (event) => {
   }
 
   try {
+    console.log('Request body size:', event.body?.length || 0);
+    
+    // Check payload size
+    if (event.body && event.body.length > 6 * 1024 * 1024) {
+      console.error('Payload too large:', event.body.length);
+      return {
+        statusCode: 413,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ error: 'File too large. Maximum size is 4MB.' }),
+      };
+    }
+    
     // Parse multipart form data (Netlify automatically parses it)
     const { userId, fileName, folderId, fileData, fileType, fileSize } = JSON.parse(event.body);
+    console.log('Parsed request:', { userId, fileName, folderId, fileType, fileSize });
 
     if (!userId || !fileName || !fileData) {
       return {

@@ -25,21 +25,9 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
     setProgress(10);
 
     try {
-      // Convert file to base64
-      const fileData = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result.split(',')[1]; // Remove data:...;base64, prefix
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      setProgress(30);
-
-      // Upload through Netlify function (which uploads to B2 and stores metadata)
-      const res = await fetch('/.netlify/functions/upload', {
+      // Step 1: Get presigned URL from backend
+      setStatus('Preparing upload...');
+      const presignedRes = await fetch('/.netlify/functions/get-presigned-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,16 +35,61 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
         body: JSON.stringify({
           userId,
           fileName: file.name,
-          fileData,
+          mimeType: file.type || 'application/octet-stream',
+          folderId: currentFolder,
+        }),
+      });
+
+      if (!presignedRes.ok) {
+        const error = await presignedRes.json();
+        throw new Error(error.error || 'Failed to prepare upload');
+      }
+
+      const { uploadUrl, authorizationToken, uploadPath } = await presignedRes.json();
+      setProgress(20);
+
+      // Step 2: Upload file directly to B2
+      setStatus(`Uploading ${file.name} to storage...`);
+      
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': authorizationToken,
+          'Content-Type': file.type || 'application/octet-stream',
+          'X-Bz-File-Name': uploadPath,
+          'X-Bz-Content-Sha1': 'do_not_verify', // Skip SHA1 verification for speed
+        },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        const errorText = await uploadRes.text();
+        throw new Error(`Upload to storage failed: ${errorText}`);
+      }
+
+      setProgress(80);
+
+      // Step 3: Store metadata in database
+      setStatus('Saving file information...');
+      const metadataRes = await fetch('/.netlify/functions/store-file-metadata', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          fileName: file.name,
+          filePath: uploadPath,
           fileType: file.type || 'application/octet-stream',
           fileSize: file.size,
           folderId: currentFolder,
         }),
       });
 
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Upload failed');
-
+      if (!metadataRes.ok) {
+        const error = await metadataRes.json();
+        throw new Error(error.error || 'Failed to save file information');
+      }
       setProgress(100);
       setStatus(`✅ ${file.name} uploaded successfully!`);
       setFile(null);
