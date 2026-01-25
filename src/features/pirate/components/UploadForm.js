@@ -32,6 +32,7 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
       if (useDirectUpload) {
         try {
           await uploadDirect();
+          e.target.reset(); // Reset form after successful upload
           return;
         } catch (err) {
           console.log('Direct upload failed, falling back to proxy:', err.message);
@@ -41,6 +42,7 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
 
       // Fallback or default: Upload via proxy
       await uploadViaProxy();
+      e.target.reset(); // Reset form after successful upload
 
     } catch (err) {
       console.error(err);
@@ -127,11 +129,6 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
     setProgress(100);
     setStatus(`✅ ${file.name} uploaded successfully!`);
     setFile(null);
-    
-    // Reset file input
-    if (e && e.target) {
-      e.target.reset();
-    }
     
     // Notify parent to refresh
     if (onUploadComplete) {
