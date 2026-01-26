@@ -1,12 +1,19 @@
 import React from 'react';
 import { useAuth } from '../../../lib/AuthContext';
 
-const FileList = ({ files, onDelete }) => {
+const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
   const [downloadingFiles, setDownloadingFiles] = React.useState(new Set());
   const [previewFile, setPreviewFile] = React.useState(null);
   const [previewUrl, setPreviewUrl] = React.useState(null);
   const [loadingPreview, setLoadingPreview] = React.useState(false);
   const { session } = useAuth();
+
+  // Function to check if user can delete a file
+  const canDeleteFile = (file) => {
+    if (!currentUser) return false;
+    // Admins can delete any file, or users can delete their own files
+    return isAdmin || file.uploaded_by === currentUser.id;
+  };
 
   const getFileIcon = (fileType) => {
     if (!fileType) return '📄';
@@ -188,20 +195,22 @@ const FileList = ({ files, onDelete }) => {
             >
               {downloadingFiles.has(file.id) ? 'Downloading...' : '⬇️ Download'}
             </button>
-            <button
-              onClick={() => onDelete(file.id)}
-              style={{
-                padding: '0.5rem 1rem',
-                background: '#dc3545',
-                border: 'none',
-                borderRadius: '4px',
-                color: '#fff',
-                cursor: 'pointer',
-                fontSize: '0.9rem'
-              }}
-            >
-              🗑️
-            </button>
+            {canDeleteFile(file) && (
+              <button
+                onClick={() => onDelete(file.id)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: '#dc3545',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem'
+                }}
+              >
+                🗑️
+              </button>
+            )}
           </div>
         </div>
       ))}

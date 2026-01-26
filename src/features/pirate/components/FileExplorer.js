@@ -9,6 +9,7 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
   const [loading, setLoading] = useState(true);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const buildBreadcrumbs = React.useCallback(async () => {
     if (!currentFolder) {
@@ -110,6 +111,12 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
   }, [currentFolder]);
 
   useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    
+    fetchCurrentUser();
     fetchFoldersAndFiles();
     buildBreadcrumbs();
     
@@ -161,15 +168,29 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
       return;
     }
 
-    const { error } = await supabase
-      .from('files')
-      .delete()
-      .eq('id', fileId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch('/.netlify/functions/delete-file', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ fileId }),
+      });
 
-    if (error) {
-      alert(`Error deleting file: ${error.message}`);
-    } else {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete file');
+      }
+
+      alert('File deleted successfully!');
       fetchFoldersAndFiles();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert(`Error deleting file: ${error.message}`);
     }
   };
 
@@ -283,7 +304,12 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
       {/* Files */}
       <div>
         <h3 style={{ marginBottom: '1rem', color: '#aaa' }}>📄 Files ({files.length})</h3>
-        <FileList files={files} onDelete={handleDeleteFile} />
+        <FileList 
+          files={files} 
+          onDelete={handleDeleteFile} 
+          currentUser={currentUser}
+          isAdmin={isAdmin}
+        />
       </div>
 
       {/* Create Folder Modal */}

@@ -82,6 +82,26 @@ CREATE POLICY "Users can delete their own files"
   ON files FOR DELETE 
   USING (uploaded_by = auth.uid());
 
+-- Admins can delete any file
+CREATE POLICY "Admins can delete any file"
+  ON files FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() AND is_admin = true
+    )
+  );
+
+-- Admins can delete any folder
+CREATE POLICY "Admins can delete any folder"
+  ON folders FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() AND is_admin = true
+    )
+  );
+
 -- Indexes for performance
 CREATE INDEX idx_folders_parent_id ON folders(parent_id);
 CREATE INDEX idx_files_folder_id ON files(folder_id);
