@@ -10,6 +10,9 @@ const PiratePage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [username, setUsername] = useState('');
   const [isUploadExpanded, setIsUploadExpanded] = useState(false);
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [editedUsername, setEditedUsername] = useState('');
+  const [updateError, setUpdateError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +45,52 @@ const PiratePage = () => {
     navigate('/signin');
   };
 
+  const handleUsernameEdit = () => {
+    setEditedUsername(username);
+    setUpdateError('');
+    setIsEditingUsername(true);
+  };
+
+  const handleUsernameCancel = () => {
+    setIsEditingUsername(false);
+    setEditedUsername('');
+    setUpdateError('');
+  };
+
+  const handleUsernameSave = async () => {
+    if (!editedUsername.trim()) {
+      setUpdateError('Username cannot be empty');
+      return;
+    }
+
+    if (editedUsername.trim() === username) {
+      setIsEditingUsername(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ username: editedUsername.trim() })
+        .eq('id', user.id);
+
+      if (error) {
+        if (error.code === '23505') {
+          setUpdateError('Username already taken');
+        } else {
+          setUpdateError('Failed to update username');
+        }
+        return;
+      }
+
+      setUsername(editedUsername.trim());
+      setIsEditingUsername(false);
+      setUpdateError('');
+    } catch (err) {
+      setUpdateError('Failed to update username');
+    }
+  };
+
   if (!user) return <div className="loading">Loading...</div>;
 
   return (
@@ -57,7 +106,71 @@ const PiratePage = () => {
       }}>
         <h1 style={{ margin: 0 }}>piracy with my friends :)</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span>Welcome, {username}</span>
+          {!isEditingUsername ? (
+            <span 
+              onClick={handleUsernameEdit}
+              style={{ 
+                cursor: 'pointer'
+              }}
+              title="click to change name playa"
+            >
+              Welcome, {username}
+            </span>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="text"
+                value={editedUsername}
+                onChange={(e) => setEditedUsername(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') handleUsernameSave();
+                  if (e.key === 'Escape') handleUsernameCancel();
+                }}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid #444',
+                  background: '#1a1a1a',
+                  color: '#fff',
+                  fontSize: '1rem'
+                }}
+                autoFocus
+              />
+              <button
+                onClick={handleUsernameSave}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  background: '#28a745',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem'
+                }}
+              >
+                Save
+              </button>
+              <button
+                onClick={handleUsernameCancel}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  background: '#6c757d',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          {updateError && (
+            <span style={{ color: '#dc3545', fontSize: '0.9rem' }}>
+              {updateError}
+            </span>
+          )}
           {isAdmin && <span style={{ background: '#dc3545', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>ADMIN</span>}
           <button 
             onClick={handleSignOut}
