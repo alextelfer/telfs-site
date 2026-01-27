@@ -6,6 +6,15 @@ const SignIn = () => {
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState('');
   const [linkSent, setLinkSent] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  // Cooldown timer
+  React.useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [cooldown]);
 
   const handleRequestMagicLink = async (e) => {
     e.preventDefault();
@@ -17,7 +26,7 @@ const SignIn = () => {
         email: email,
         options: {
           shouldCreateUser: false,
-          emailRedirectTo: `${window.location.origin}/piracy_is_cool`,
+          emailRedirectTo: process.env.REACT_APP_REDIRECT_URL || `${window.location.origin}/piracy_is_cool`,
         }
       });
 
@@ -28,11 +37,13 @@ const SignIn = () => {
             error.message.includes('rate limit') ||
             error.code === 'over_email_send_rate_limit') {
           setMessage('⚠️ Email rate limit exceeded. Please wait 5-10 minutes before trying again.');
+          setCooldown(300); // 5 minute cooldown
         } else {
           setMessage(error.message);
         }
       } else {
         setLinkSent(true);
+        setCooldown(60); // 60 second cooldown after successful send
       }
     } catch (err) {
       if (err.message.includes('NetworkError') || err.message.includes('fetch')) {
@@ -65,10 +76,10 @@ const SignIn = () => {
           </div>
           <button 
             type="submit" 
-            disabled={sending}
-            style={{ width: '100%', padding: '0.75rem', cursor: sending ? 'not-allowed' : 'pointer' }}
+            disabled={sending || cooldown > 0}
+            style={{ width: '100%', padding: '0.75rem', cursor: (sending || cooldown > 0) ? 'not-allowed' : 'pointer' }}
           >
-            {sending ? 'Sending...' : 'gimme link'}
+            {sending ? 'Sending...' : cooldown > 0 ? `Wait ${cooldown}s` : 'gimme link'}
           </button>
         </form>
       ) : (

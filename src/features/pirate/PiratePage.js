@@ -13,36 +13,61 @@ const PiratePage = () => {
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [editedUsername, setEditedUsername] = useState('');
   const [updateError, setUpdateError] = useState('');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data?.user) {
-        navigate('/signin');
-      } else {
-        setUser(data.user);
-        
-        // Check if user is admin
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('is_admin, username')
-          .eq('id', data.user.id)
-          .single();
-        
-        if (profile) {
-          setIsAdmin(profile.is_admin || false);
-          setUsername(profile.username || '');
-        }
-      }
-    };
+    // Check if URL has auth tokens (magic link callback)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const hasAuthTokens = hashParams.has('access_token') || hashParams.has('error');
 
-    fetchUser();
+    // Listen for auth state changes (handles magic link callback)
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          setUser(session.user);
+          
+          // Check if user is admin
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('is_admin, username')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile) {
+            setIsAdmin(profile.is_admin || false);
+            setUsername(profile.username || '');
+          }
+          setLoading(false);
+        } else if (!hasAuthTokens) {
+          // Only redirect if we're not processing auth tokens
+          setLoading(false);
+          navigate('/piracy');
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setLoading(false);
+        navigate('/piracy');
+      }
+    });
+
+    // Initial check for existing session (but don't redirect if processing auth callback)
+    if (!hasAuthTokens) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          setLoading(false);
+          navigate('/piracy');
+        }
+      });
+    }
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate('/signin');
+    navigate('/piracy');
   };
 
   const handleUsernameEdit = () => {
@@ -91,7 +116,7 @@ const PiratePage = () => {
     }
   };
 
-  if (!user) return <div className="loading">Loading...</div>;
+  if (loading || !user) return <div className="loading">Loading...</div>;
 
   return (
     <div style={{ minHeight: '100vh', background: '#1a1a1a', color: '#fff' }}>
