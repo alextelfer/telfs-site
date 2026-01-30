@@ -92,7 +92,7 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
       headers: {
         'Authorization': authorizationToken,
         'Content-Type': file.type || 'application/octet-stream',
-        'X-Bz-File-Name': uploadPath,
+        'X-Bz-File-Name': encodeURIComponent(uploadPath),
         'X-Bz-Content-Sha1': 'do_not_verify',
       },
       body: file,
