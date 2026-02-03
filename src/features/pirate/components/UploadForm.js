@@ -25,25 +25,29 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
     setProgress(10);
 
     try {
-      // Try direct upload first (if CORS is configured on B2)
-      // Fallback to proxy only for small files if direct fails
-      try {
-        await uploadDirect();
-        e.target.reset(); // Reset form after successful upload
-        return;
-      } catch (err) {
-        console.log('Direct upload failed:', err.message);
-        
-        // Only fallback to proxy for small files (under 6MB - Netlify's function payload limit)
-        if (file.size < 6 * 1024 * 1024) {
-          console.log('Falling back to proxy upload...');
-          setProgress(10); // Reset progress
-          await uploadViaProxy();
-          e.target.reset(); // Reset form after successful upload
-        } else {
-          throw new Error(`Direct upload failed and file is too large for proxy (${(file.size / 1024 / 1024).toFixed(1)}MB). Error: ${err.message}`);
+      // Use multipart for files over 100MB
+      if (file.size > 100 * 1024 * 1024) {
+        await uploadMultipart();
+      } else {
+        // Try direct upload first for smaller files
+        try {
+          await uploadDirect();
+        } catch (err) {
+          console.log('Direct upload failed:', err.message);
+          
+          // Only fallback to proxy for small files (under 6MB - Netlify's function payload limit)
+          if (file.size < 6 * 1024 * 1024) {
+            console.log('Falling back to proxy upload...');
+            setProgress(10); // Reset progress
+            await uploadViaProxy();
+          } else {
+            throw new Error(`Direct upload failed and file is too large for proxy (${(file.size / 1024 / 1024).toFixed(1)}MB). Error: ${err.message}`);
+          }
         }
       }
+      
+      e.target.reset();
+      setFile(null);
 
     } catch (err) {
       console.error(err);
@@ -57,6 +61,112 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
           setStatus('');
         }
       }, 3000);
+    }
+  };
+
+  const uploadMultipart = async () => {
+    const CHUNK_SIZE = 100 * 1024 * 1024; // 100MB chunks
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    
+    setStatus(`Preparing large file upload (${totalChunks} parts)...`);
+    
+    // Step 1: Start large file upload
+    const startRes = await fetch('/.netlify/functions/start-large-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        fileName: file.name,
+        fileSize: file.size,
+        mimeType: file.type || 'application/octet-stream',
+        folderId: currentFolder,
+      }),
+    });
+
+    if (!startRes.ok) {
+      const error = await startRes.json();
+      throw new Error(error.error || 'Failed to start large upload');
+    }
+
+    const { fileId, uploadPath } = await startRes.json();
+    const sha1Array = [];
+    
+    // Step 2: Upload each part
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = file.slice(start, end);
+      
+      setStatus(`Uploading part ${i + 1} of ${totalChunks}...`);
+      setProgress(20 + ((i / totalChunks) * 60));
+      
+      // Calculate SHA1 for the chunk
+      const chunkBuffer = await chunk.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-1', chunkBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const sha1 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      // Get upload URL for this part
+      const partUrlRes = await fetch('/.netlify/functions/get-part-upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileId, partNumber: i + 1 }),
+      });
+
+      if (!partUrlRes.ok) {
+        throw new Error(`Failed to get upload URL for part ${i + 1}`);
+      }
+
+      const { uploadUrl, authorizationToken } = await partUrlRes.json();
+      
+      // Upload the chunk with calculated SHA1
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': authorizationToken,
+          'X-Bz-Part-Number': String(i + 1),
+          'X-Bz-Content-Sha1': sha1,
+        },
+        body: chunk,
+      });
+
+      if (!uploadRes.ok) {
+        const errorText = await uploadRes.text();
+        throw new Error(`Failed to upload part ${i + 1}: ${errorText}`);
+      }
+
+      sha1Array.push(sha1);
+    }
+    
+    // Step 3: Finish large file
+    setStatus('Finalizing upload...');
+    setProgress(85);
+    
+    const finishRes = await fetch('/.netlify/functions/finish-large-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileId,
+        sha1Array,
+        userId,
+        fileName: file.name,
+        filePath: uploadPath,
+        fileType: file.type || 'application/octet-stream',
+        fileSize: file.size,
+        folderId: currentFolder,
+      }),
+    });
+
+    if (!finishRes.ok) {
+      const error = await finishRes.json();
+      throw new Error(error.error || 'Failed to finalize upload');
+    }
+
+    setProgress(100);
+    setStatus(`✅ ${file.name} uploaded successfully!`);
+    
+    if (onUploadComplete) {
+      onUploadComplete();
     }
   };
 
