@@ -25,8 +25,8 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
     setProgress(10);
 
     try {
-      // Use multipart for files over 100MB
-      if (file.size > 100 * 1024 * 1024) {
+      // Use multipart for files over 500MB
+      if (file.size > 500 * 1024 * 1024) {
         await uploadMultipart();
       } else {
         // Try direct upload first for smaller files
@@ -65,8 +65,10 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
   };
 
   const uploadMultipart = async () => {
-    const CHUNK_SIZE = 100 * 1024 * 1024; // 100MB chunks
+    const CHUNK_SIZE = 500 * 1024 * 1024; // 500MB chunks
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const MAX_CONCURRENT = 4; // Upload 4 chunks in parallel
+    const MAX_RETRIES = 3;
     
     setStatus(`Preparing large file upload (${totalChunks} parts)...`);
     
@@ -89,53 +91,77 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
     }
 
     const { fileId, uploadPath } = await startRes.json();
-    const sha1Array = [];
+    const sha1Array = new Array(totalChunks);
+    const completedChunks = new Set();
     
-    // Step 2: Upload each part
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * CHUNK_SIZE;
-      const end = Math.min(start + CHUNK_SIZE, file.size);
-      const chunk = file.slice(start, end);
-      
-      setStatus(`Uploading part ${i + 1} of ${totalChunks}...`);
-      setProgress(20 + ((i / totalChunks) * 60));
-      
-      // Calculate SHA1 for the chunk
-      const chunkBuffer = await chunk.arrayBuffer();
-      const hashBuffer = await crypto.subtle.digest('SHA-1', chunkBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const sha1 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      // Get upload URL for this part
-      const partUrlRes = await fetch('/.netlify/functions/get-part-upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileId, partNumber: i + 1 }),
-      });
+    // Helper function to upload a single chunk with retry logic
+    const uploadChunk = async (chunkIndex, retryCount = 0) => {
+      try {
+        const start = chunkIndex * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+        
+        // Calculate SHA1 for the chunk
+        const chunkBuffer = await chunk.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-1', chunkBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const sha1 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        
+        // Get upload URL for this part
+        const partUrlRes = await fetch('/.netlify/functions/get-part-upload-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileId, partNumber: chunkIndex + 1 }),
+        });
 
-      if (!partUrlRes.ok) {
-        throw new Error(`Failed to get upload URL for part ${i + 1}`);
+        if (!partUrlRes.ok) {
+          throw new Error(`Failed to get upload URL for part ${chunkIndex + 1}`);
+        }
+
+        const { uploadUrl, authorizationToken } = await partUrlRes.json();
+        
+        // Upload the chunk with calculated SHA1
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': authorizationToken,
+            'X-Bz-Part-Number': String(chunkIndex + 1),
+            'X-Bz-Content-Sha1': sha1,
+          },
+          body: chunk,
+        });
+
+        if (!uploadRes.ok) {
+          const errorText = await uploadRes.text();
+          throw new Error(`Failed to upload part ${chunkIndex + 1}: ${errorText}`);
+        }
+
+        sha1Array[chunkIndex] = sha1;
+        completedChunks.add(chunkIndex);
+        
+        // Update progress based on completed chunks
+        const progressPercent = 20 + ((completedChunks.size / totalChunks) * 60);
+        setProgress(progressPercent);
+        setStatus(`Uploading parts (${completedChunks.size}/${totalChunks} complete)...`);
+        
+        return sha1;
+      } catch (error) {
+        if (retryCount < MAX_RETRIES) {
+          console.log(`Retrying chunk ${chunkIndex + 1}, attempt ${retryCount + 1}/${MAX_RETRIES}`);
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+          return uploadChunk(chunkIndex, retryCount + 1);
+        }
+        throw new Error(`Chunk ${chunkIndex + 1} failed after ${MAX_RETRIES} retries: ${error.message}`);
       }
-
-      const { uploadUrl, authorizationToken } = await partUrlRes.json();
-      
-      // Upload the chunk with calculated SHA1
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': authorizationToken,
-          'X-Bz-Part-Number': String(i + 1),
-          'X-Bz-Content-Sha1': sha1,
-        },
-        body: chunk,
-      });
-
-      if (!uploadRes.ok) {
-        const errorText = await uploadRes.text();
-        throw new Error(`Failed to upload part ${i + 1}: ${errorText}`);
+    };
+    
+    // Step 2: Upload chunks in parallel batches
+    for (let i = 0; i < totalChunks; i += MAX_CONCURRENT) {
+      const batch = [];
+      for (let j = i; j < Math.min(i + MAX_CONCURRENT, totalChunks); j++) {
+        batch.push(uploadChunk(j));
       }
-
-      sha1Array.push(sha1);
+      await Promise.all(batch);
     }
     
     // Step 3: Finish large file
