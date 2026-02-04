@@ -5,7 +5,7 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
   const [downloadingFiles, setDownloadingFiles] = React.useState(new Set());
   const [previewFile, setPreviewFile] = React.useState(null);
   const [previewUrl, setPreviewUrl] = React.useState(null);
-  const [loadingPreview, setLoadingPreview] = React.useState(false);
+  const [loadingPreview] = React.useState(false);
   const { session } = useAuth();
 
   // Function to check if user can delete a file
@@ -16,18 +16,18 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
   };
 
   const getFileIcon = (fileType) => {
-    if (!fileType) return '📄';
+    if (!fileType) return '▪';
     
-    if (fileType.startsWith('image/')) return '🖼️';
-    if (fileType.startsWith('video/')) return '🎬';
-    if (fileType.startsWith('audio/')) return '🎵';
-    if (fileType.includes('pdf')) return '📕';
-    if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('7z')) return '📦';
-    if (fileType.includes('word') || fileType.includes('document')) return '📝';
-    if (fileType.includes('sheet') || fileType.includes('excel')) return '📊';
-    if (fileType.includes('presentation') || fileType.includes('powerpoint')) return '📽️';
+    if (fileType.startsWith('image/')) return '■';
+    if (fileType.startsWith('video/')) return '■';
+    if (fileType.startsWith('audio/')) return '■';
+    if (fileType.includes('pdf')) return '▪';
+    if (fileType.includes('zip') || fileType.includes('rar') || fileType.includes('7z')) return '■';
+    if (fileType.includes('word') || fileType.includes('document')) return '▪';
+    if (fileType.includes('sheet') || fileType.includes('excel')) return '▪';
+    if (fileType.includes('presentation') || fileType.includes('powerpoint')) return '▪';
     
-    return '📄';
+    return '▪';
   };
 
   const formatFileSize = (bytes) => {
@@ -36,43 +36,6 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
-  };
-
-  const handlePreview = async (file) => {
-    if (!file.file_type?.startsWith('image/') && !file.file_type?.startsWith('video/') && !file.file_type?.startsWith('audio/') && !file.file_type?.includes('pdf')) {
-      alert('Preview is only available for images, videos, audio, and PDF files.');
-      return;
-    }
-
-    setLoadingPreview(true);
-    setPreviewFile(file);
-    
-    try {
-      const response = await fetch('/.netlify/functions/get-file-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({
-          filePath: file.file_path,
-          fileName: file.file_name
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load preview');
-      }
-
-      const data = await response.json();
-      setPreviewUrl(data.downloadUrl);
-    } catch (err) {
-      console.error('Preview error:', err);
-      alert(`Failed to preview file: ${err.message}`);
-      setPreviewFile(null);
-    } finally {
-      setLoadingPreview(false);
-    }
   };
 
   const closePreview = () => {
@@ -128,87 +91,80 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
 
   if (files.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-        no files in this folder. upload some shit to get started! 🏴‍☠️
+      <div style={{ textAlign: 'center', padding: '1.5rem', color: '#000', fontSize: '0.9rem' }}>
+        no files in this folder. upload some shit to get started!
       </div>
     );
   }
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {files.map((file) => (
         <div
           key={file.id}
           style={{
-            background: '#3a3a3a',
-            padding: '1rem',
-            borderRadius: '8px',
+            background: '#c0c0c0',
+            padding: '0.75rem',
+            borderRadius: '0',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            border: '1px solid #444'
+            border: '2px solid',
+            borderColor: '#fff #808080 #808080 #fff',
+            boxShadow: 'inset 1px 1px 0 #dfdfdf'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-            <div style={{ fontSize: '2rem' }}>{getFileIcon(file.file_type)}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+            <div style={{ fontSize: '1.5rem', color: '#555' }}>{getFileIcon(file.file_type)}</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '0.25rem', fontSize: '0.85rem', fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif' }}>
                 {file.file_name}
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#888' }}>
+              <div style={{ fontSize: '0.75rem', color: '#555', fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif' }}>
                 {formatFileSize(file.file_size)} • Uploaded by {file.uploaded_by_username} • {new Date(file.created_at).toLocaleDateString()}
               </div>
             </div>
           </div>
           
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {(file.file_type?.startsWith('image/') || file.file_type?.startsWith('video/') || file.file_type?.startsWith('audio/') || file.file_type?.includes('pdf')) && (
-              <button
-                onClick={() => handlePreview(file)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: '#6c757d',
-                  border: 'none',
-                  borderRadius: '4px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontSize: '0.9rem'
-                }}
-              >
-                👁️ View
-              </button>
-            )}
             <button
               onClick={() => handleDownload(file)}
               disabled={downloadingFiles.has(file.id)}
               style={{
-                padding: '0.5rem 1rem',
-                background: '#007bff',
-                border: 'none',
-                borderRadius: '4px',
-                color: '#fff',
+                padding: '3px 8px',
+                background: downloadingFiles.has(file.id) ? '#808080' : '#c0c0c0',
+                border: '2px solid',
+                borderColor: downloadingFiles.has(file.id) ? '#000 #fff #fff #000' : '#fff #000 #000 #fff',
+                borderRadius: '0',
+                color: '#000',
                 cursor: downloadingFiles.has(file.id) ? 'not-allowed' : 'pointer',
-                fontSize: '0.9rem',
-                opacity: downloadingFiles.has(file.id) ? 0.6 : 1
+                fontSize: '0.8rem',
+                fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                fontWeight: 'normal',
+                boxShadow: downloadingFiles.has(file.id) ? 'inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #000' : 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
               }}
             >
-              {downloadingFiles.has(file.id) ? 'Downloading...' : '⬇️ Download'}
+              {downloadingFiles.has(file.id) ? 'Downloading...' : 'Download'}
             </button>
             {canDeleteFile(file) && (
               <button
                 onClick={() => onDelete(file.id)}
                 style={{
-                  padding: '0.5rem 1rem',
-                  background: '#dc3545',
-                  border: 'none',
-                  borderRadius: '4px',
-                  color: '#fff',
+                  padding: '3px 8px',
+                  background: '#c0c0c0',
+                  border: '2px solid',
+                  borderColor: '#fff #000 #000 #fff',
+                  borderRadius: '0',
+                  color: '#000',
                   cursor: 'pointer',
-                  fontSize: '0.9rem'
+                  fontSize: '0.8rem',
+                  fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                  fontWeight: 'normal',
+                  boxShadow: 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
                 }}
               >
-                🗑️
+                Delete
               </button>
             )}
           </div>
@@ -226,7 +182,7 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.9)',
+            background: 'rgba(0, 0, 0, 0.5)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -241,36 +197,53 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
             style={{
               maxWidth: '90vw',
               maxHeight: '90vh',
-              background: '#2d2d2d',
-              borderRadius: '8px',
-              padding: '1rem',
+              background: '#c0c0c0',
+              borderRadius: '0',
+              padding: '0',
               display: 'flex',
               flexDirection: 'column',
-              cursor: 'default'
+              cursor: 'default',
+              border: '2px solid',
+              borderColor: '#fff #000 #000 #fff',
+              boxShadow: 'inset 1px 1px 0 #dfdfdf, 2px 2px 5px rgba(0,0,0,0.5)'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ margin: 0 }}>{previewFile.file_name}</h3>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              padding: '3px 5px',
+              background: '#000080',
+              color: '#fff',
+              fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+              fontSize: '0.85rem',
+              fontWeight: 'bold'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '0.85rem' }}>{previewFile.file_name}</h3>
               <button
                 onClick={closePreview}
                 style={{
-                  background: '#dc3545',
-                  border: 'none',
-                  borderRadius: '4px',
-                  color: '#fff',
+                  background: '#c0c0c0',
+                  border: '2px solid',
+                  borderColor: '#fff #000 #000 #fff',
+                  borderRadius: '0',
+                  color: '#000',
                   cursor: 'pointer',
-                  padding: '0.5rem 1rem',
-                  fontSize: '1rem'
+                  padding: '1px 6px',
+                  fontSize: '0.8rem',
+                  fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                  fontWeight: 'bold',
+                  boxShadow: 'inset 1px 1px 0 #dfdfdf'
                 }}
               >
-                ✕ Close
+                X
               </button>
             </div>
             
             {loadingPreview ? (
-              <div style={{ textAlign: 'center', padding: '2rem' }}>Loading preview...</div>
+              <div style={{ textAlign: 'center', padding: '2rem', background: '#fff', margin: '2px', color: '#000' }}>Loading preview...</div>
             ) : previewUrl && (
-              <div style={{ overflow: 'auto', maxHeight: '80vh' }}>
+              <div style={{ overflow: 'auto', maxHeight: '80vh', background: '#fff', padding: '4px', margin: '2px', border: '2px solid', borderColor: '#808080 #fff #fff #808080' }}>
                 {previewFile.file_type?.startsWith('image/') && (
                   <img
                     src={previewUrl}

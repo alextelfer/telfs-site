@@ -34,10 +34,20 @@ CREATE TABLE IF NOT EXISTS files (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Chat messages table
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+  message TEXT NOT NULL CHECK (char_length(message) <= 1000),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Row Level Security Policies
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
 
 -- User profiles: Users can read all profiles, but only update their own
 CREATE POLICY "Public profiles are viewable by authenticated users" 
@@ -102,11 +112,35 @@ CREATE POLICY "Admins can delete any folder"
     )
   );
 
+-- Chat messages: All authenticated users can view messages
+CREATE POLICY "Chat messages are viewable by authenticated users"
+  ON chat_messages FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated users can send messages"
+  ON chat_messages FOR INSERT
+  WITH CHECK (auth.role() = 'authenticated' AND user_id = auth.uid());
+
+CREATE POLICY "Users can delete their own messages"
+  ON chat_messages FOR DELETE
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Admins can delete any message"
+  ON chat_messages FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE id = auth.uid() AND is_admin = true
+    )
+  );
+
 -- Indexes for performance
 CREATE INDEX idx_folders_parent_id ON folders(parent_id);
 CREATE INDEX idx_files_folder_id ON files(folder_id);
 CREATE INDEX idx_files_uploaded_by ON files(uploaded_by);
 CREATE INDEX idx_user_profiles_username ON user_profiles(username);
+CREATE INDEX idx_chat_messages_created_at ON chat_messages(created_at DESC);
+CREATE INDEX idx_chat_messages_user_id ON chat_messages(user_id);
 
 -- Function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -125,4 +159,7 @@ CREATE TRIGGER update_folders_updated_at BEFORE UPDATE ON folders
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_files_updated_at BEFORE UPDATE ON files
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_chat_messages_updated_at BEFORE UPDATE ON chat_messages
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

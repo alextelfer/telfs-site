@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import FileExplorer from './components/FileExplorer';
 import UploadForm from './components/UploadForm';
+import ChatPanel from './components/ChatPanel';
 
 const PiratePage = () => {
   const [user, setUser] = useState(null);
@@ -14,7 +15,16 @@ const PiratePage = () => {
   const [editedUsername, setEditedUsername] = useState('');
   const [updateError, setUpdateError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const navigate = useNavigate();
+
+  // Handle window resize for responsive layout
+  useEffect(() => {
+    const handleResize = () => setScreenWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     // Check if URL has auth tokens (magic link callback)
@@ -64,6 +74,29 @@ const PiratePage = () => {
       authListener.subscription.unsubscribe();
     };
   }, [navigate]);
+
+  // Keyboard controls for chat
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Check if user is typing in an input field
+      const isInputField = ['INPUT', 'TEXTAREA'].includes(e.target.tagName);
+      
+      // Enter key to open chat (when not in input field and chat is closed)
+      if (e.key === 'Enter' && !isInputField && !isChatOpen) {
+        e.preventDefault();
+        setIsChatOpen(true);
+      }
+      
+      // ESC key to close chat (when chat is open)
+      if (e.key === 'Escape' && isChatOpen) {
+        e.preventDefault();
+        setIsChatOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isChatOpen]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -119,23 +152,29 @@ const PiratePage = () => {
   if (loading || !user) return <div className="loading">Loading...</div>;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#1a1a1a', color: '#fff' }}>
+    <div style={{ minHeight: '100vh', background: '#c0c0c0', color: '#000', fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif' }}>
       {/* Header */}
       <header style={{ 
-        padding: '1rem 2rem', 
-        background: '#2d2d2d', 
+        padding: '0.5rem 1rem', 
+        background: '#000080', 
         display: 'flex', 
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottom: '2px solid #444'
+        borderTop: '2px solid #fff',
+        borderLeft: '2px solid #fff',
+        borderRight: '2px solid #000',
+        borderBottom: '2px solid #000',
+        boxShadow: 'inset 1px 1px 0 #0000c0, inset -1px -1px 0 #000050'
       }}>
-        <h1 style={{ margin: 0 }}>piracy with my friends :)</h1>
+        <h1 style={{ margin: 0, color: '#fff', fontSize: '1rem', fontWeight: 'bold' }}>piracy with my friends :)</h1>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           {!isEditingUsername ? (
             <span 
               onClick={handleUsernameEdit}
               style={{ 
-                cursor: 'pointer'
+                cursor: 'pointer',
+                color: '#fff',
+                fontSize: '0.9rem'
               }}
               title="click to change name playa"
             >
@@ -152,25 +191,31 @@ const PiratePage = () => {
                   if (e.key === 'Escape') handleUsernameCancel();
                 }}
                 style={{
-                  padding: '0.25rem 0.5rem',
-                  borderRadius: '4px',
-                  border: '1px solid #444',
-                  background: '#1a1a1a',
-                  color: '#fff',
-                  fontSize: '1rem'
+                  padding: '2px 4px',
+                  borderRadius: '0',
+                  border: '2px solid',
+                  borderColor: '#808080 #fff #fff #808080',
+                  background: '#fff',
+                  color: '#000',
+                  fontSize: '0.9rem',
+                  fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif'
                 }}
                 autoFocus
               />
               <button
                 onClick={handleUsernameSave}
                 style={{
-                  padding: '0.25rem 0.5rem',
-                  background: '#28a745',
-                  border: 'none',
-                  borderRadius: '4px',
-                  color: '#fff',
+                  padding: '2px 12px',
+                  background: '#c0c0c0',
+                  border: '2px solid',
+                  borderColor: '#fff #000 #000 #fff',
+                  borderRadius: '0',
+                  color: '#000',
                   cursor: 'pointer',
-                  fontSize: '0.8rem'
+                  fontSize: '0.8rem',
+                  fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                  fontWeight: 'normal',
+                  boxShadow: 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
                 }}
               >
                 Save
@@ -178,13 +223,17 @@ const PiratePage = () => {
               <button
                 onClick={handleUsernameCancel}
                 style={{
-                  padding: '0.25rem 0.5rem',
-                  background: '#6c757d',
-                  border: 'none',
-                  borderRadius: '4px',
-                  color: '#fff',
+                  padding: '2px 12px',
+                  background: '#c0c0c0',
+                  border: '2px solid',
+                  borderColor: '#fff #000 #000 #fff',
+                  borderRadius: '0',
+                  color: '#000',
                   cursor: 'pointer',
-                  fontSize: '0.8rem'
+                  fontSize: '0.8rem',
+                  fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                  fontWeight: 'normal',
+                  boxShadow: 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
                 }}
               >
                 Cancel
@@ -192,20 +241,25 @@ const PiratePage = () => {
             </div>
           )}
           {updateError && (
-            <span style={{ color: '#dc3545', fontSize: '0.9rem' }}>
+            <span style={{ color: '#fff', fontSize: '0.9rem', background: '#c00', padding: '2px 4px' }}>
               {updateError}
             </span>
           )}
-          {isAdmin && <span style={{ background: '#dc3545', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>ADMIN</span>}
+          {isAdmin && <span style={{ background: '#c00', color: '#fff', padding: '2px 8px', border: '1px solid #800', fontSize: '0.8rem', fontWeight: 'bold' }}>ADMIN</span>}
           <button 
             onClick={handleSignOut}
             style={{ 
-              padding: '0.5rem 1rem', 
-              background: '#dc3545', 
-              border: 'none', 
-              borderRadius: '4px',
-              color: '#fff',
-              cursor: 'pointer'
+              padding: '3px 12px', 
+              background: '#c0c0c0', 
+              border: '2px solid', 
+              borderColor: '#fff #000 #000 #fff',
+              borderRadius: '0',
+              color: '#000',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+              fontWeight: 'normal',
+              boxShadow: 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
             }}
           >
             Sign Out
@@ -214,8 +268,15 @@ const PiratePage = () => {
       </header>
 
       {/* Main Content */}
-      <div style={{ padding: '2rem', display: 'flex', justifyContent: 'center' }}>
-        <div style={{ width: '65vw', minWidth: '600px', maxWidth: '1400px' }}>
+      <div style={{ padding: '1rem', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ 
+          width: '65vw',
+          minWidth: screenWidth < 768 ? '320px' : '600px',
+          maxWidth: '1000px',
+          opacity: isChatOpen && screenWidth < 768 ? 0 : 1,
+          visibility: isChatOpen && screenWidth < 768 ? 'hidden' : 'visible',
+          transition: 'opacity 0.3s ease'
+        }}>
         <FileExplorer 
           currentFolder={currentFolder}
           onFolderChange={setCurrentFolder}
@@ -235,6 +296,15 @@ const PiratePage = () => {
         </div>
         </div>
       </div>
+      
+      {/* Chat Panel */}
+      <ChatPanel 
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        currentUser={user}
+        isAdmin={isAdmin}
+        screenWidth={screenWidth}
+      />
     </div>
   );
 };

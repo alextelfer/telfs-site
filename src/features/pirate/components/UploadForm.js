@@ -313,28 +313,34 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
 
   return (
     <div style={{
-      background: '#2d2d2d',
-      borderRadius: '8px',
-      border: '2px solid #444',
-      overflow: 'hidden'
+      background: '#c0c0c0',
+      borderRadius: '0',
+      border: '2px solid',
+      borderColor: '#fff #808080 #808080 #fff',
+      overflow: 'hidden',
+      boxShadow: 'inset 1px 1px 0 #dfdfdf'
     }}>
       {/* Collapsible Header */}
       <div 
         onClick={onToggle}
         style={{
-          padding: '1rem 1.5rem',
-          background: '#353535',
+          padding: '3px 8px',
+          background: '#000080',
           cursor: 'pointer',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          userSelect: 'none'
+          userSelect: 'none',
+          color: '#fff',
+          fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+          fontSize: '0.85rem',
+          fontWeight: 'bold'
         }}
       >
-        <h3 style={{ margin: 0 }}>
-          📤 Upload File {currentFolder && '(to current folder)'}
+        <h3 style={{ margin: 0, fontSize: '0.85rem' }}>
+          Upload File {currentFolder && '(to current folder)'}
         </h3>
-        <span style={{ fontSize: '1.5rem', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+        <span style={{ fontSize: '0.8rem', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
           ▼
         </span>
       </div>
@@ -349,19 +355,22 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
             onChange={handleFileChange}
             disabled={uploading}
             style={{
-              padding: '0.75rem',
-              background: '#1a1a1a',
-              border: '1px solid #444',
-              borderRadius: '4px',
-              color: '#fff',
+              padding: '4px',
+              background: '#fff',
+              border: '2px solid',
+              borderColor: '#808080 #fff #fff #808080',
+              borderRadius: '0',
+              color: '#000',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
-              cursor: uploading ? 'not-allowed' : 'pointer'
+              cursor: uploading ? 'not-allowed' : 'pointer',
+              fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+              fontSize: '0.85rem'
             }}
           />
           {file && (
-            <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#888' }}>
+            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#000', fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif' }}>
               Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
             </div>
           )}
@@ -371,44 +380,62 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
           type="submit"
           disabled={uploading || !file}
           style={{
-            padding: '0.75rem 1.5rem',
-            background: uploading || !file ? '#555' : '#007bff',
-            border: 'none',
-            borderRadius: '4px',
-            color: '#fff',
+            padding: '4px 12px',
+            background: uploading || !file ? '#808080' : '#c0c0c0',
+            border: '2px solid',
+            borderColor: uploading || !file ? '#000 #fff #fff #000' : '#fff #000 #000 #fff',
+            borderRadius: '0',
+            color: '#000',
             cursor: uploading || !file ? 'not-allowed' : 'pointer',
-            fontSize: '1rem',
+            fontSize: '0.85rem',
             fontWeight: 'bold',
-            transition: 'background 0.2s'
+            fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+            boxShadow: uploading || !file ? 'inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #000' : 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
           }}
         >
-          {uploading ? 'Uploading...' : '⬆️ Upload File'}
+          {uploading ? 'Uploading...' : 'Upload File'}
         </button>
 
         {/* Progress Bar */}
         {progress > 0 && (
           <div style={{
             width: '100%',
-            height: '8px',
-            background: '#1a1a1a',
-            borderRadius: '4px',
-            overflow: 'hidden'
+            height: '20px',
+            background: '#fff',
+            border: '2px solid',
+            borderColor: '#808080 #fff #fff #808080',
+            borderRadius: '0',
+            overflow: 'hidden',
+            boxShadow: 'inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #000'
           }}>
             <div style={{
               width: `${progress}%`,
               height: '100%',
-              background: progress === 100 ? '#28a745' : '#007bff',
-              transition: 'width 0.3s ease'
-            }} />
+              background: progress === 100 ? '#008000' : '#000080',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontSize: '0.7rem',
+              fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+              fontWeight: 'bold'
+            }}>
+              {progress > 15 && `${Math.round(progress)}%`}
+            </div>
           </div>
         )}
 
         {status && (
           <div style={{
-            padding: '0.75rem',
-            background: status.includes('✅') ? '#1e4620' : status.includes('❌') ? '#4a1f1f' : '#1a3a5a',
-            borderRadius: '4px',
-            fontSize: '0.9rem'
+            padding: '6px',
+            background: status.includes('✅') ? '#c0c0c0' : status.includes('❌') ? '#c0c0c0' : '#c0c0c0',
+            border: '2px solid',
+            borderColor: '#808080 #fff #fff #808080',
+            borderRadius: '0',
+            fontSize: '0.8rem',
+            color: status.includes('✅') ? '#008000' : status.includes('❌') ? '#c00' : '#000',
+            fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+            boxShadow: 'inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #000'
           }}>
             {status}
           </div>
@@ -417,13 +444,17 @@ const UploadForm = ({ currentFolder, onUploadComplete, isExpanded, onToggle }) =
 
       <div style={{
         marginTop: '1rem',
-        padding: '0.75rem',
-        background: '#1a1a1a',
-        borderRadius: '4px',
-        fontSize: '0.85rem',
-        color: '#888'
+        padding: '6px',
+        background: '#fff',
+        border: '2px solid',
+        borderColor: '#808080 #fff #fff #808080',
+        borderRadius: '0',
+        fontSize: '0.75rem',
+        color: '#000',
+        fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+        boxShadow: 'inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #000'
       }}>
-        <strong>📝 note for the homies:</strong> files are securely stored and only accessible to authenticated users.
+        <strong>note for the homies:</strong> files are securely stored and only accessible to authenticated users.
       </div>
         </div>
       )}

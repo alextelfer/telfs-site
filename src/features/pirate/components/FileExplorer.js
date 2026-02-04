@@ -199,7 +199,14 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
   }
 
   return (
-    <div style={{ background: '#2d2d2d', borderRadius: '8px', padding: '1.5rem' }}>
+    <div style={{ 
+      background: '#c0c0c0', 
+      borderRadius: '0', 
+      padding: '1rem',
+      border: '2px solid',
+      borderColor: '#808080 #fff #fff #808080',
+      boxShadow: 'inset -1px -1px 0 #dfdfdf, inset 1px 1px 0 #000'
+    }}>
       {/* Breadcrumbs and Actions */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -208,24 +215,28 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
             style={{ 
               background: 'none', 
               border: 'none', 
-              color: '#66b3ff',
+              color: '#00007f',
               cursor: 'pointer',
-              fontSize: '1rem'
+              fontSize: '0.9rem',
+              fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+              textDecoration: 'underline'
             }}
           >
-            🏴‍☠️ Root
+            ▪ Root
           </button>
           {breadcrumbs.map((crumb, idx) => (
             <React.Fragment key={crumb.id}>
-              <span style={{ color: '#666' }}>/</span>
+              <span style={{ color: '#000' }}>\</span>
               <button
                 onClick={() => onFolderChange(crumb.id)}
                 style={{ 
                   background: 'none', 
                   border: 'none', 
-                  color: '#66b3ff',
+                  color: '#00007f',
                   cursor: 'pointer',
-                  fontSize: '1rem'
+                  fontSize: '0.9rem',
+                  fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                  textDecoration: 'underline'
                 }}
               >
                 {crumb.name}
@@ -239,58 +250,74 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
           <button
             onClick={() => setShowCreateFolder(true)}
             style={{
-              padding: '0.4rem 0.8rem',
-              background: '#28a745',
-              border: 'none',
-              borderRadius: '4px',
-              color: '#fff',
+              padding: '3px 10px',
+              background: '#c0c0c0',
+              border: '2px solid',
+              borderColor: '#fff #000 #000 #fff',
+              borderRadius: '0',
+              color: '#000',
               cursor: 'pointer',
               fontSize: '0.85rem',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+              fontWeight: 'normal',
+              boxShadow: 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
             }}
           >
-            ➕ New Folder
+            New Folder
           </button>
         )}
       </div>
 
       {/* Folders */}
       {folders.length > 0 && (
-        <div style={{ marginBottom: '2rem' }}>
-          <h3 style={{ marginBottom: '1rem', color: '#aaa' }}>📁 Folders</h3>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ marginBottom: '0.75rem', color: '#000', fontSize: '0.9rem', fontWeight: 'bold' }}>Folders</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
             {folders.map((folder) => (
               <div
                 key={folder.id}
                 style={{
-                  background: '#3a3a3a',
-                  padding: '1rem',
-                  borderRadius: '8px',
+                  background: '#c0c0c0',
+                  padding: '0.75rem',
+                  borderRadius: '0',
                   cursor: 'pointer',
-                  border: '2px solid transparent',
-                  transition: 'all 0.2s'
+                  border: '2px solid',
+                  borderColor: '#fff #808080 #808080 #fff',
+                  boxShadow: 'inset 1px 1px 0 #dfdfdf'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#66b3ff'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#000080 #87ceeb #87ceeb #000080';
+                  e.currentTarget.style.background = '#000080';
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = '#fff #808080 #808080 #fff';
+                  e.currentTarget.style.background = '#c0c0c0';
+                  e.currentTarget.style.color = '#000';
+                }}
               >
                 <div onClick={() => onFolderChange(folder.id)} style={{ marginBottom: '0.5rem' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📁</div>
-                  <div style={{ fontWeight: 'bold' }}>{folder.name}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.25rem', filter: 'grayscale(100%)' }}>📁</div>
+                  <div style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>{folder.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#555', marginTop: '0.25rem' }}>
                     by {folder.created_by_username}
                   </div>
                 </div>
                 <button
                   onClick={() => handleDeleteFolder(folder.id)}
                   style={{
-                    padding: '0.25rem 0.5rem',
-                    background: '#dc3545',
-                    border: 'none',
-                    borderRadius: '4px',
-                    color: '#fff',
+                    padding: '2px 8px',
+                    background: '#c0c0c0',
+                    border: '2px solid',
+                    borderColor: '#fff #000 #000 #fff',
+                    borderRadius: '0',
+                    color: '#000',
                     cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    width: '100%'
+                    fontSize: '0.75rem',
+                    width: '100%',
+                    fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                    boxShadow: 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
                   }}
                 >
                   Delete
@@ -303,7 +330,7 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
 
       {/* Files */}
       <div>
-        <h3 style={{ marginBottom: '1rem', color: '#aaa' }}>📄 Files ({files.length})</h3>
+        <h3 style={{ marginBottom: '0.75rem', color: '#000', fontSize: '0.9rem', fontWeight: 'bold' }}>Files ({files.length})</h3>
         <FileList 
           files={files} 
           onDelete={handleDeleteFile} 
