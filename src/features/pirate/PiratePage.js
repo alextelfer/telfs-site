@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import FileExplorer from './components/FileExplorer';
@@ -18,12 +18,22 @@ const PiratePage = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [screenWidth, setScreenWidth] = useState(window.innerWidth);
   const navigate = useNavigate();
+  const uploadCloseTimeoutRef = useRef(null);
 
   // Handle window resize for responsive layout
   useEffect(() => {
     const handleResize = () => setScreenWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Cleanup upload close timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (uploadCloseTimeoutRef.current) {
+        clearTimeout(uploadCloseTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -291,6 +301,14 @@ const PiratePage = () => {
             onUploadComplete={() => {
               // Trigger refresh in FileExplorer
               window.dispatchEvent(new Event('files-updated'));
+              
+              // Close upload form after 1.5s delay to show success message
+              if (uploadCloseTimeoutRef.current) {
+                clearTimeout(uploadCloseTimeoutRef.current);
+              }
+              uploadCloseTimeoutRef.current = setTimeout(() => {
+                setIsUploadExpanded(false);
+              }, 1500);
             }} 
           />
         </div>

@@ -20,7 +20,8 @@
         "npm:react-scripts@5.0.1",
         "npm:react-select@^5.10.1",
         "npm:react@^18.2.0",
-        "npm:uuid@^11.1.0"
+        "npm:uuid@^11.1.0",
+        "npm:video.js@^8.10.0"
       ]
     }
   }
