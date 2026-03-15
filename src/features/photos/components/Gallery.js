@@ -27,7 +27,12 @@ const Gallery = () => {
       setLoading(false);
     };
 
-    if (userId) fetchPhotos();
+    if (userId) {
+      fetchPhotos();
+    } else {
+      // If no userId after initial render, stop loading
+      setLoading(false);
+    }
   }, [userId]);
 
   if (loading) return <p>Loading photos...</p>;

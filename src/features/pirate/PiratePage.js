@@ -37,34 +37,71 @@ const PiratePage = () => {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+    
+    // Safety timeout: if loading takes more than 5 seconds, force stop loading
+    const loadingTimeout = setTimeout(() => {
+      if (mounted) {
+        console.error('Auth loading timeout - forcing to sign in page');
+        setLoading(false);
+        navigate('/piracy');
+      }
+    }, 5000);
+
     // Check if URL has auth tokens (magic link callback)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const hasAuthTokens = hashParams.has('access_token') || hashParams.has('error');
 
+    // Handle auth error in URL
+    if (hashParams.has('error')) {
+      console.error('Auth error:', hashParams.get('error_description'));
+      clearTimeout(loadingTimeout);
+      setLoading(false);
+      navigate('/piracy');
+      return;
+    }
+
     // Listen for auth state changes (handles magic link callback)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         if (session?.user) {
           setUser(session.user);
           
           // Check if user is admin
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('is_admin, username')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profile) {
-            setIsAdmin(profile.is_admin || false);
-            setUsername(profile.username || '');
+          try {
+            const { data: profile, error } = await supabase
+              .from('user_profiles')
+              .select('is_admin, username')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (error) {
+              console.error('Profile fetch error:', error);
+            }
+            
+            if (profile) {
+              setIsAdmin(profile.is_admin || false);
+              setUsername(profile.username || '');
+            }
+          } catch (err) {
+            console.error('Profile fetch exception:', err);
           }
+          
+          clearTimeout(loadingTimeout);
           setLoading(false);
         } else if (!hasAuthTokens) {
           // Only redirect if we're not processing auth tokens
+          clearTimeout(loadingTimeout);
           setLoading(false);
           navigate('/piracy');
+        } else {
+          // Has auth tokens but no session - wait a bit more, but timeout will handle it
+          console.log('Waiting for session with auth tokens...');
         }
       } else if (event === 'SIGNED_OUT') {
+        clearTimeout(loadingTimeout);
         setLoading(false);
         navigate('/piracy');
       }
@@ -73,7 +110,16 @@ const PiratePage = () => {
     // Initial check for existing session (but don't redirect if processing auth callback)
     if (!hasAuthTokens) {
       supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!mounted) return;
         if (!session) {
+          clearTimeout(loadingTimeout);
+          setLoading(false);
+          navigate('/piracy');
+        }
+      }).catch((err) => {
+        console.error('getSession error:', err);
+        if (mounted) {
+          clearTimeout(loadingTimeout);
           setLoading(false);
           navigate('/piracy');
         }
@@ -81,6 +127,8 @@ const PiratePage = () => {
     }
 
     return () => {
+      mounted = false;
+      clearTimeout(loadingTimeout);
       authListener.subscription.unsubscribe();
     };
   }, [navigate]);

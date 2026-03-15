@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../lib/AuthContext';
 
 const SignIn = () => {
+  const { session } = useAuth();
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState('');
   const [linkSent, setLinkSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+
+  if (session) {
+    return <Navigate to="/piracy_is_cool" replace />;
+  }
 
   // Cooldown timer
   React.useEffect(() => {
