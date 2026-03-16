@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../../lib/AuthContext';
 import MediaPlayer from './MediaPlayer';
+import ComicViewer from './ComicViewer';
 import CommentSection from './CommentSection';
 
 const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
@@ -75,9 +76,27 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
     return isAdmin || file.uploaded_by === currentUser.id;
   };
 
+  const getFileExtension = (fileName = '') => {
+    const parts = fileName.toLowerCase().split('.');
+    return parts.length > 1 ? parts.pop() : '';
+  };
+
   const isMediaFile = (fileType) => {
     if (!fileType) return false;
     return fileType.startsWith('video/') || fileType.startsWith('audio/');
+  };
+
+  const isComicFile = (file) => {
+    if (!file) return false;
+
+    const comicExtensions = ['cbz', 'pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
+    const extension = getFileExtension(file.file_name);
+
+    if (comicExtensions.includes(extension)) return true;
+    if (file.file_type?.includes('pdf')) return true;
+    if (file.file_type?.startsWith('image/')) return true;
+
+    return false;
   };
 
   const getFileIcon = (fileType) => {
@@ -111,33 +130,37 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
     setCurrentPlaylistIndex(0);
   };
 
+  const getAuthorizedPreviewUrl = async (targetFile) => {
+    const response = await fetch(
+      '/.netlify/functions/get-file-url',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({
+          filePath: targetFile.file_path,
+          fileName: targetFile.file_name
+        })
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to get file URL');
+    }
+
+    const data = await response.json();
+    return data.downloadUrl;
+  };
+
   const handlePlay = async (file) => {
     setLoadingPreview(true);
     setPreviewFile(file);
     
     try {
-      // Get authorized URL from backend
-      const response = await fetch(
-        '/.netlify/functions/get-file-url',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({
-            filePath: file.file_path,
-            fileName: file.file_name
-          })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to get file URL');
-      }
-
-      const data = await response.json();
-      setPreviewUrl(data.downloadUrl);
+      const downloadUrl = await getAuthorizedPreviewUrl(file);
+      setPreviewUrl(downloadUrl);
       
       // Build playlist from all media files in current folder
       const mediaFiles = files.filter(f => isMediaFile(f.file_type));
@@ -147,6 +170,24 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
     } catch (err) {
       console.error('Error loading file:', err);
       alert(`Failed to load file: ${err.message}`);
+      closePreview();
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const handleRead = async (file) => {
+    setLoadingPreview(true);
+    setPreviewFile(file);
+
+    try {
+      const downloadUrl = await getAuthorizedPreviewUrl(file);
+      setPreviewUrl(downloadUrl);
+      setPlaylist([]);
+      setCurrentPlaylistIndex(0);
+    } catch (err) {
+      console.error('Error loading comic:', err);
+      alert(`Failed to load comic: ${err.message}`);
       closePreview();
     } finally {
       setLoadingPreview(false);
@@ -354,6 +395,26 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
                         <span style={{ marginLeft: previewFile?.id === file.id ? '12px' : '0' }}>Play</span>
                       </button>
                     )}
+                    {isComicFile(file) && (
+                      <button
+                        onClick={() => handleRead(file)}
+                        style={{
+                          padding: '3px 8px',
+                          background: previewFile?.id === file.id && isComicFile(previewFile) ? '#000080' : '#c0c0c0',
+                          border: '2px solid',
+                          borderColor: '#fff #000 #000 #fff',
+                          borderRadius: '0',
+                          color: previewFile?.id === file.id && isComicFile(previewFile) ? '#fff' : '#000',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                          fontWeight: 'normal',
+                          boxShadow: 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
+                        }}
+                      >
+                        Read
+                      </button>
+                    )}
                     <button
                       onClick={() => toggleComments(file.id)}
                       style={{
@@ -496,6 +557,11 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
                     currentIndex={currentPlaylistIndex}
                     onPlaylistChange={handlePlaylistChange}
                     onClose={closePreview}
+                  />
+                ) : isComicFile(previewFile) ? (
+                  <ComicViewer
+                    file={previewFile}
+                    url={previewUrl}
                   />
                 ) : (
                   <>

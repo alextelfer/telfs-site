@@ -11,17 +11,17 @@ const SignIn = () => {
   const [linkSent, setLinkSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
-  if (session) {
-    return <Navigate to="/piracy_is_cool" replace />;
-  }
-
-  // Cooldown timer
+    // Cooldown timer
   React.useEffect(() => {
     if (cooldown > 0) {
       const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
       return () => clearTimeout(timer);
     }
   }, [cooldown]);
+
+  if (session) {
+    return <Navigate to="/piracy_is_cool" replace />;
+  }
 
   const handleRequestMagicLink = async (e) => {
     e.preventDefault();

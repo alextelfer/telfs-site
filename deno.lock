@@ -11,10 +11,14 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@ffmpeg/ffmpeg@~0.12.15",
+        "npm:@ffmpeg/util@~0.12.2",
         "npm:@supabase/supabase-js@^2.50.2",
         "npm:backblaze-b2@^1.7.1",
         "npm:formidable@^3.5.4",
+        "npm:jszip@^3.10.1",
         "npm:multiparty@^4.2.3",
+        "npm:netlify-cli@^23.15.1",
         "npm:react-dom@^18.2.0",
         "npm:react-router-dom@^6.30.1",
         "npm:react-scripts@5.0.1",

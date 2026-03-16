@@ -8,6 +8,7 @@
     "@supabase/supabase-js": "^2.50.2",
     "backblaze-b2": "^1.7.1",
     "formidable": "^3.5.4",
+    "jszip": "^3.10.1",
     "multiparty": "^4.2.3",
     "netlify-cli": "^23.15.1",
     "react": "^18.2.0",

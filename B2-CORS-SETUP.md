@@ -14,7 +14,7 @@ To allow direct uploads from your website to B2, you need to configure CORS rule
   {
     "corsRuleName": "allowWebUploads",
     "allowedOrigins": ["https://www.telfs.ca", "http://localhost:3000"],
-    "allowedOperations": ["b2_upload_file", "b2_upload_part"],
+      "allowedOperations": ["b2_upload_file", "b2_upload_part", "b2_download_file_by_name"],
     "allowedHeaders": ["*"],
     "exposeHeaders": ["x-bz-content-sha1"],
     "maxAgeSeconds": 3600
@@ -43,7 +43,7 @@ If you prefer using the command line:
 
 4. **Update Bucket CORS Rules**:
    ```bash
-   b2 bucket update YOUR_BUCKET_NAME allPrivate --cors-rules '[{"corsRuleName":"allowWebUploads","allowedOrigins":["https://www.telfs.ca","http://localhost:3000"],"allowedOperations":["b2_upload_file","b2_upload_part"],"allowedHeaders":["*"],"exposeHeaders":["x-bz-content-sha1"],"maxAgeSeconds":3600}]'
+   b2 bucket update YOUR_BUCKET_NAME allPrivate --cors-rules '[{"corsRuleName":"allowWebUploads","allowedOrigins":["https://www.telfs.ca","http://localhost:3000"],"allowedOperations":["b2_upload_file","b2_upload_part","b2_download_file_by_name"],"allowedHeaders":["*"],"exposeHeaders":["x-bz-content-sha1"],"maxAgeSeconds":3600}]'
    ```
 
 Replace:
