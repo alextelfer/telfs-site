@@ -9,11 +9,18 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
   const [previewFile, setPreviewFile] = React.useState(null);
   const [previewUrl, setPreviewUrl] = React.useState(null);
   const [loadingPreview, setLoadingPreview] = React.useState(false);
+  const [viewportWidth, setViewportWidth] = React.useState(window.innerWidth);
   const [playlist, setPlaylist] = React.useState([]);
   const [currentPlaylistIndex, setCurrentPlaylistIndex] = React.useState(0);
   const [expandedComments, setExpandedComments] = React.useState(new Set());
   const [commentCounts, setCommentCounts] = React.useState({});
   const { session } = useAuth();
+
+  React.useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Load comment counts for all files
   React.useEffect(() => {
@@ -231,6 +238,10 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
       setLoadingPreview(false);
     }
   };
+
+  const isMobileViewport = viewportWidth <= 768;
+  const isComicPreview = isComicFile(previewFile);
+  const hideMobileComicTitleBar = isComicPreview && isMobileViewport;
 
   const handleDownload = async (file) => {
     setDownloadingFiles(prev => new Set([...prev, file.id]));
@@ -495,62 +506,102 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
             alignItems: 'center',
             justifyContent: 'center',
             zIndex: 1000,
-            padding: '2rem',
+            padding: isComicPreview && isMobileViewport ? '0' : '2rem',
             cursor: 'pointer'
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: '90vw',
-              maxHeight: '90vh',
+              width: isComicPreview && isMobileViewport ? '100vw' : 'auto',
+              maxWidth: isComicPreview && isMobileViewport ? '100vw' : '90vw',
+              height: isComicPreview && isMobileViewport ? '100dvh' : 'auto',
+              maxHeight: isComicPreview && isMobileViewport ? '100dvh' : '90vh',
               background: '#c0c0c0',
               borderRadius: '0',
               padding: '0',
               display: 'flex',
               flexDirection: 'column',
+              position: 'relative',
               cursor: 'default',
-              border: '2px solid',
+              border: isComicPreview && isMobileViewport ? 'none' : '2px solid',
               borderColor: '#fff #000 #000 #fff',
-              boxShadow: 'inset 1px 1px 0 #dfdfdf, 2px 2px 5px rgba(0,0,0,0.5)'
+              boxShadow: isComicPreview && isMobileViewport ? 'none' : 'inset 1px 1px 0 #dfdfdf, 2px 2px 5px rgba(0,0,0,0.5)'
             }}
           >
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center', 
-              padding: '3px 5px',
-              background: '#000080',
-              color: '#fff',
-              fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
-              fontSize: '0.85rem',
-              fontWeight: 'bold'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '0.85rem' }}>{previewFile.file_name}</h3>
+            {!hideMobileComicTitleBar && (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                padding: '3px 5px',
+                background: '#000080',
+                color: '#fff',
+                fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                fontSize: '0.85rem',
+                fontWeight: 'bold'
+              }}>
+                <h3 style={{ margin: 0, fontSize: '0.85rem' }}>{previewFile.file_name}</h3>
+                <button
+                  onClick={closePreview}
+                  style={{
+                    background: '#c0c0c0',
+                    border: '2px solid',
+                    borderColor: '#fff #000 #000 #fff',
+                    borderRadius: '0',
+                    color: '#000',
+                    cursor: 'pointer',
+                    padding: '1px 6px',
+                    fontSize: '0.8rem',
+                    fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                    fontWeight: 'bold',
+                    boxShadow: 'inset 1px 1px 0 #dfdfdf'
+                  }}
+                >
+                  X
+                </button>
+              </div>
+            )}
+
+            {hideMobileComicTitleBar && (
               <button
                 onClick={closePreview}
                 style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  zIndex: 2,
                   background: '#c0c0c0',
                   border: '2px solid',
                   borderColor: '#fff #000 #000 #fff',
                   borderRadius: '0',
                   color: '#000',
                   cursor: 'pointer',
-                  padding: '1px 6px',
-                  fontSize: '0.8rem',
+                  padding: '2px 8px',
+                  fontSize: '0.85rem',
                   fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
                   fontWeight: 'bold',
                   boxShadow: 'inset 1px 1px 0 #dfdfdf'
                 }}
+                aria-label="close preview"
               >
                 X
               </button>
-            </div>
+            )}
             
             {loadingPreview ? (
               <div style={{ textAlign: 'center', padding: '2rem', background: '#fff', margin: '2px', color: '#000' }}>Loading preview...</div>
             ) : previewUrl && (
-              <div style={{ overflow: 'auto', maxHeight: '80vh', background: '#fff', padding: '4px', margin: '2px', border: '2px solid', borderColor: '#808080 #fff #fff #808080' }}>
+              <div style={{
+                overflow: isComicPreview && isMobileViewport ? 'hidden' : 'auto',
+                maxHeight: isComicPreview && isMobileViewport ? (hideMobileComicTitleBar ? '100dvh' : 'calc(100dvh - 33px)') : '80vh',
+                height: isComicPreview && isMobileViewport ? (hideMobileComicTitleBar ? '100dvh' : 'calc(100dvh - 33px)') : 'auto',
+                background: '#fff',
+                padding: isComicPreview && isMobileViewport ? '0' : '4px',
+                margin: isComicPreview && isMobileViewport ? '0' : '2px',
+                border: isComicPreview && isMobileViewport ? 'none' : '2px solid',
+                borderColor: '#808080 #fff #fff #808080'
+              }}>
                 {isMediaFile(previewFile.file_type) ? (
                   <MediaPlayer 
                     file={previewFile}
@@ -564,6 +615,7 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
                   <ComicViewer
                     file={previewFile}
                     url={previewUrl}
+                    isMobile={isMobileViewport}
                   />
                 ) : (
                   <>

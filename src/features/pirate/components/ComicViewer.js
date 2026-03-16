@@ -42,7 +42,7 @@ const getComicLoadErrorMessage = (loadError) => {
   return 'failed to open comic file. try downloading it instead.';
 };
 
-const ComicViewer = ({ file, url }) => {
+const ComicViewer = ({ file, url, isMobile = false }) => {
   const { session } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -317,19 +317,33 @@ const ComicViewer = ({ file, url }) => {
     });
   };
 
+  const isAtStart = currentPage <= 0;
+  const isAtEnd = !isPdf && currentPage >= Math.max(0, pageUrls.length - 1);
+
+  const getNavButtonStyle = (isDisabled) => ({
+    padding: '3px 8px',
+    background: isDisabled ? '#808080' : '#c0c0c0',
+    border: '2px solid',
+    borderColor: isDisabled ? '#000 #fff #fff #000' : '#fff #000 #000 #fff',
+    color: '#000',
+    cursor: isDisabled ? 'not-allowed' : 'pointer',
+    fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+    fontSize: '0.8rem'
+  });
+
   const pageLabel = isPdf
     ? `Page ${currentPage + 1}`
     : `${Math.min(currentPage + 1, Math.max(pageUrls.length, 1))} / ${Math.max(pageUrls.length, 1)}`;
 
   return (
-    <div style={{ width: '80vw', maxWidth: '1200px', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: isMobile ? '100%' : '80vw', maxWidth: isMobile ? 'none' : '1200px', height: isMobile ? '100%' : '80vh', display: 'flex', flexDirection: 'column' }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: isMobile ? 'center' : 'space-between',
           gap: '0.5rem',
-          padding: '0.5rem',
+          padding: isMobile ? '0.35rem 0.5rem' : '0.5rem',
           background: '#c0c0c0',
           border: '2px solid',
           borderColor: '#fff #808080 #808080 #fff',
@@ -337,40 +351,24 @@ const ComicViewer = ({ file, url }) => {
           fontSize: '0.8rem'
         }}
       >
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={goToPreviousPage}
-            disabled={currentPage <= 0}
-            style={{
-              padding: '3px 8px',
-              background: currentPage <= 0 ? '#808080' : '#c0c0c0',
-              border: '2px solid',
-              borderColor: currentPage <= 0 ? '#000 #fff #fff #000' : '#fff #000 #000 #fff',
-              color: '#000',
-              cursor: currentPage <= 0 ? 'not-allowed' : 'pointer',
-              fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
-              fontSize: '0.8rem'
-            }}
-          >
-            Prev
-          </button>
-          <button
-            onClick={goToNextPage}
-            disabled={!isPdf && currentPage >= Math.max(0, pageUrls.length - 1)}
-            style={{
-              padding: '3px 8px',
-              background: !isPdf && currentPage >= Math.max(0, pageUrls.length - 1) ? '#808080' : '#c0c0c0',
-              border: '2px solid',
-              borderColor: !isPdf && currentPage >= Math.max(0, pageUrls.length - 1) ? '#000 #fff #fff #000' : '#fff #000 #000 #fff',
-              color: '#000',
-              cursor: !isPdf && currentPage >= Math.max(0, pageUrls.length - 1) ? 'not-allowed' : 'pointer',
-              fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
-              fontSize: '0.8rem'
-            }}
-          >
-            Next
-          </button>
-        </div>
+        {!isMobile && (
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={goToPreviousPage}
+              disabled={isAtStart}
+              style={getNavButtonStyle(isAtStart)}
+            >
+              Prev
+            </button>
+            <button
+              onClick={goToNextPage}
+              disabled={isAtEnd}
+              style={getNavButtonStyle(isAtEnd)}
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         <div style={{ fontWeight: 'bold', color: '#000' }}>{pageLabel}</div>
       </div>
@@ -381,8 +379,8 @@ const ComicViewer = ({ file, url }) => {
           background: '#000',
           border: '2px solid',
           borderColor: '#808080 #fff #fff #808080',
-          marginTop: '4px',
-          overflow: 'auto',
+          marginTop: isMobile ? '2px' : '4px',
+          overflow: isMobile ? 'hidden' : 'auto',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -404,10 +402,42 @@ const ComicViewer = ({ file, url }) => {
           <img
             src={pageUrls[currentPage]}
             alt={`${file.file_name} - page ${currentPage + 1}`}
-            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+            style={{ width: isMobile ? '100%' : 'auto', height: isMobile ? '100%' : 'auto', maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
           />
         )}
       </div>
+
+      {isMobile && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.5rem',
+            padding: '0.4rem 0.5rem',
+            background: '#c0c0c0',
+            border: '2px solid',
+            borderColor: '#fff #808080 #808080 #fff',
+            marginTop: '2px'
+          }}
+        >
+          <button
+            onClick={goToPreviousPage}
+            disabled={isAtStart}
+            style={getNavButtonStyle(isAtStart)}
+          >
+            Prev
+          </button>
+
+          <button
+            onClick={goToNextPage}
+            disabled={isAtEnd}
+            style={getNavButtonStyle(isAtEnd)}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 };
