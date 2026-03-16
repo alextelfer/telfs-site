@@ -326,11 +326,12 @@ const PiratePage = () => {
       </header>
 
       {/* Main Content */}
-      <div style={{ padding: '1rem', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ padding: '1rem', display: 'flex', justifyContent: 'center', boxSizing: 'border-box', width: '100%' }}>
         <div style={{ 
-          width: '65vw',
-          minWidth: screenWidth < 768 ? '320px' : '600px',
+          width: screenWidth < 768 ? '100%' : '65vw',
+          minWidth: 0,
           maxWidth: '1000px',
+          boxSizing: 'border-box',
           opacity: isChatOpen && screenWidth < 768 ? 0 : 1,
           visibility: isChatOpen && screenWidth < 768 ? 'hidden' : 'visible',
           transition: 'opacity 0.3s ease'

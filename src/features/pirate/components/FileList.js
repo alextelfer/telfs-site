@@ -300,26 +300,28 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
                   padding: '0.75rem',
                   borderRadius: '0',
                   display: 'flex',
+                  flexWrap: 'wrap',
                   justifyContent: 'space-between',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
+                  gap: '0.5rem',
                   border: '2px solid',
                   borderColor: '#fff #808080 #808080 #fff',
                   boxShadow: 'inset 1px 1px 0 #dfdfdf'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
-                  <div style={{ fontSize: '1.5rem', color: '#555' }}>{getFileIcon(file.file_type)}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '0.25rem', fontSize: '0.85rem', fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '1.5rem', color: '#555', flexShrink: 0 }}>{getFileIcon(file.file_type)}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: '0.25rem', fontSize: '0.85rem', fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                       {file.file_name}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#555', fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#555', fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                       {formatFileSize(file.file_size)} • Uploaded by {file.uploaded_by_username} • {new Date(file.created_at).toLocaleDateString()}
                     </div>
                   </div>
                 </div>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
                   {/* Top row: Download and Delete */}
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button

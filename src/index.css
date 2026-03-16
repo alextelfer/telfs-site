@@ -2,10 +2,5 @@ body {
   background: whitesmoke;
   color: black;
   font-family: monospace;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
   margin: 0;
-  flex-direction: column;
 }
