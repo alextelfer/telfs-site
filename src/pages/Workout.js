@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabaseClient';
 
 const WORKOUT_SELECT_FIELDS =
   'id, created_at, program, week, day, exercise, set_number, reps, weight, timer_seconds';
+const WORKOUT_OPTION_FIELDS = 'program, week, day, exercise, created_at';
+const ADD_NEW_OPTION = '__add_new__';
 
 const panelStyle = {
   background: '#c0c0c0',
@@ -42,6 +44,36 @@ const formatTime = (seconds) => {
   return `${mins}:${secs}`;
 };
 
+const normalizeWorkoutValue = (value) => String(value || '').trim();
+
+const workoutValueMatches = (left, right) =>
+  normalizeWorkoutValue(left).toLowerCase() === normalizeWorkoutValue(right).toLowerCase();
+
+const findLatestRow = (rows, predicate) => rows.find((row) => predicate(row));
+
+const buildWorkoutOptions = (values, currentValue) => {
+  const optionSet = new Set();
+
+  values.forEach((value) => {
+    const normalized = normalizeWorkoutValue(value);
+    if (normalized) {
+      optionSet.add(normalized);
+    }
+  });
+
+  const normalizedCurrent = normalizeWorkoutValue(currentValue);
+  if (normalizedCurrent) {
+    optionSet.add(normalizedCurrent);
+  }
+
+  return Array.from(optionSet).sort((a, b) =>
+    a.localeCompare(b, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    })
+  );
+};
+
 const mapWorkoutRow = (row) => {
   const createdAt = row.created_at ? new Date(row.created_at) : new Date();
 
@@ -67,13 +99,18 @@ function Workout() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [logs, setLogs] = useState([]);
+  const [optionRows, setOptionRows] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const [program, setProgram] = useState('main');
-  const [week, setWeek] = useState('1');
-  const [day, setDay] = useState('1');
+  const [program, setProgram] = useState('');
+  const [week, setWeek] = useState('');
+  const [day, setDay] = useState('');
   const [exercise, setExercise] = useState('');
+  const [addingProgram, setAddingProgram] = useState(false);
+  const [addingWeek, setAddingWeek] = useState(false);
+  const [addingDay, setAddingDay] = useState(false);
+  const [addingExercise, setAddingExercise] = useState(false);
   const [setNumber, setSetNumber] = useState('1');
   const [reps, setReps] = useState('');
   const [weight, setWeight] = useState('');
@@ -81,6 +118,7 @@ function Workout() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [message, setMessage] = useState('');
+  const [initialSelectionSet, setInitialSelectionSet] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -126,6 +164,62 @@ function Workout() {
       setAuthLoading(false);
     }
   }, [session]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      return undefined;
+    }
+
+    let mounted = true;
+
+    const fetchWorkoutOptions = async () => {
+      const { data, error } = await supabase
+        .from('workout_logs')
+        .select(WORKOUT_OPTION_FIELDS)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(2000);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (error) {
+        console.error('Failed to fetch workout dropdown options:', error);
+        return;
+      }
+
+      setOptionRows(data || []);
+    };
+
+    fetchWorkoutOptions();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (initialSelectionSet || optionRows.length === 0) {
+      return;
+    }
+
+    const latest = optionRows[0];
+    const latestProgram = normalizeWorkoutValue(latest?.program);
+    const latestWeek = normalizeWorkoutValue(latest?.week);
+    const latestDay = normalizeWorkoutValue(latest?.day);
+    const latestExercise = normalizeWorkoutValue(latest?.exercise);
+
+    setProgram(latestProgram);
+    setWeek(latestWeek);
+    setDay(latestDay);
+    setExercise(latestExercise);
+    setAddingProgram(false);
+    setAddingWeek(false);
+    setAddingDay(false);
+    setAddingExercise(false);
+    setInitialSelectionSet(true);
+  }, [optionRows, initialSelectionSet]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -196,6 +290,44 @@ function Workout() {
 
     return () => clearInterval(interval);
   }, [timerRunning]);
+
+  const programOptions = useMemo(
+    () => buildWorkoutOptions(optionRows.map((row) => row.program), program),
+    [optionRows, program]
+  );
+
+  const weekOptions = useMemo(() => {
+    const filteredRows = optionRows.filter((row) => workoutValueMatches(row.program, program));
+    return buildWorkoutOptions(
+      filteredRows.map((row) => row.week),
+      week
+    );
+  }, [optionRows, program, week]);
+
+  const dayOptions = useMemo(() => {
+    const filteredRows = optionRows.filter(
+      (row) => workoutValueMatches(row.program, program) && workoutValueMatches(row.week, week)
+    );
+
+    return buildWorkoutOptions(
+      filteredRows.map((row) => row.day),
+      day
+    );
+  }, [optionRows, program, week, day]);
+
+  const exerciseOptions = useMemo(() => {
+    const filteredRows = optionRows.filter(
+      (row) =>
+        workoutValueMatches(row.program, program) &&
+        workoutValueMatches(row.week, week) &&
+        workoutValueMatches(row.day, day)
+    );
+
+    return buildWorkoutOptions(
+      filteredRows.map((row) => row.exercise),
+      exercise
+    );
+  }, [optionRows, program, week, day, exercise]);
 
   const suggestion = useMemo(() => {
     const normalizedExercise = exercise.trim().toLowerCase();
@@ -292,6 +424,16 @@ function Workout() {
 
       const entry = mapWorkoutRow(data);
       setLogs((previous) => [entry, ...previous]);
+      setOptionRows((previous) => [
+        {
+          program: data.program,
+          week: data.week,
+          day: data.day,
+          exercise: data.exercise,
+          created_at: data.created_at
+        },
+        ...previous
+      ]);
       setSetNumber(String(parsedSet + 1));
       setReps('');
       setWeight('');
@@ -348,24 +490,166 @@ function Workout() {
         <div style={{ ...panelStyle, background: '#000080', color: '#fff' }}>
           <h1 style={{ margin: 0, fontSize: '1rem' }}>workout tracker</h1>
           <div style={{ marginTop: '4px', fontSize: '0.8rem' }}>logged in as: {user.email || user.id}</div>
-          <div style={{ marginTop: '6px', fontSize: '0.9rem' }}>
-            {program || 'program'} {'>'} {week || 'week'} {'>'} {day || 'day'} {'>'} {exercise || 'exercise'} {'>'} set {setNumber || '1'} {'>'} rep
-          </div>
         </div>
 
         <div style={panelStyle}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
             <label>
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>program</div>
-              <input style={inputStyle} value={program} onChange={(e) => setProgram(e.target.value)} />
+              <select
+                style={inputStyle}
+                value={addingProgram ? ADD_NEW_OPTION : program}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  if (selected === ADD_NEW_OPTION) {
+                    setAddingProgram(true);
+                    setProgram('');
+                    setWeek('');
+                    setDay('');
+                    setExercise('');
+                    return;
+                  }
+
+                  const latestProgramRow = findLatestRow(optionRows, (row) =>
+                    workoutValueMatches(row.program, selected)
+                  );
+                  const latestWeekValue = normalizeWorkoutValue(latestProgramRow?.week);
+                  const latestProgramWeekRow = findLatestRow(
+                    optionRows,
+                    (row) =>
+                      workoutValueMatches(row.program, selected) &&
+                      workoutValueMatches(row.week, latestWeekValue)
+                  );
+                  const latestDayValue = normalizeWorkoutValue(latestProgramWeekRow?.day);
+                  const latestProgramWeekDayRow = findLatestRow(
+                    optionRows,
+                    (row) =>
+                      workoutValueMatches(row.program, selected) &&
+                      workoutValueMatches(row.week, latestWeekValue) &&
+                      workoutValueMatches(row.day, latestDayValue)
+                  );
+
+                  setAddingProgram(false);
+                  setAddingWeek(false);
+                  setAddingDay(false);
+                  setAddingExercise(false);
+                  setProgram(selected);
+                  setWeek(latestWeekValue);
+                  setDay(latestDayValue);
+                  setExercise(normalizeWorkoutValue(latestProgramWeekDayRow?.exercise));
+                }}
+              >
+                {programOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+                <option value={ADD_NEW_OPTION}>+ add new...</option>
+              </select>
+              {addingProgram && (
+                <input
+                  style={{ ...inputStyle, marginTop: '6px' }}
+                  value={program}
+                  onChange={(e) => setProgram(e.target.value)}
+                  placeholder="new program"
+                />
+              )}
             </label>
             <label>
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>week</div>
-              <input style={inputStyle} value={week} onChange={(e) => setWeek(e.target.value)} />
+              <select
+                style={inputStyle}
+                value={addingWeek ? ADD_NEW_OPTION : week}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  if (selected === ADD_NEW_OPTION) {
+                    setAddingWeek(true);
+                    setWeek('');
+                    setDay('');
+                    setExercise('');
+                    return;
+                  }
+
+                  const latestProgramWeekRow = findLatestRow(
+                    optionRows,
+                    (row) => workoutValueMatches(row.program, program) && workoutValueMatches(row.week, selected)
+                  );
+                  const latestDayValue = normalizeWorkoutValue(latestProgramWeekRow?.day);
+                  const latestProgramWeekDayRow = findLatestRow(
+                    optionRows,
+                    (row) =>
+                      workoutValueMatches(row.program, program) &&
+                      workoutValueMatches(row.week, selected) &&
+                      workoutValueMatches(row.day, latestDayValue)
+                  );
+
+                  setAddingWeek(false);
+                  setAddingDay(false);
+                  setAddingExercise(false);
+                  setWeek(selected);
+                  setDay(latestDayValue);
+                  setExercise(normalizeWorkoutValue(latestProgramWeekDayRow?.exercise));
+                }}
+              >
+                {weekOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+                <option value={ADD_NEW_OPTION}>+ add new...</option>
+              </select>
+              {addingWeek && (
+                <input
+                  style={{ ...inputStyle, marginTop: '6px' }}
+                  value={week}
+                  onChange={(e) => setWeek(e.target.value)}
+                  placeholder="new week"
+                />
+              )}
             </label>
             <label>
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>day</div>
-              <input style={inputStyle} value={day} onChange={(e) => setDay(e.target.value)} />
+              <select
+                style={inputStyle}
+                value={addingDay ? ADD_NEW_OPTION : day}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  if (selected === ADD_NEW_OPTION) {
+                    setAddingDay(true);
+                    setDay('');
+                    setExercise('');
+                    return;
+                  }
+
+                  const latestProgramWeekDayRow = findLatestRow(
+                    optionRows,
+                    (row) =>
+                      workoutValueMatches(row.program, program) &&
+                      workoutValueMatches(row.week, week) &&
+                      workoutValueMatches(row.day, selected)
+                  );
+
+                  setAddingDay(false);
+                  setAddingExercise(false);
+                  setDay(selected);
+                  setExercise(normalizeWorkoutValue(latestProgramWeekDayRow?.exercise));
+                }}
+              >
+                {dayOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+                <option value={ADD_NEW_OPTION}>+ add new...</option>
+              </select>
+              {addingDay && (
+                <input
+                  style={{ ...inputStyle, marginTop: '6px' }}
+                  value={day}
+                  onChange={(e) => setDay(e.target.value)}
+                  placeholder="new day"
+                />
+              )}
             </label>
           </div>
         </div>
@@ -407,19 +691,60 @@ function Workout() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
             <label>
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>exercise</div>
-              <input style={inputStyle} value={exercise} onChange={(e) => setExercise(e.target.value)} />
+              <select
+                style={inputStyle}
+                value={addingExercise ? ADD_NEW_OPTION : exercise}
+                onChange={(e) => {
+                  const selected = e.target.value;
+                  if (selected === ADD_NEW_OPTION) {
+                    setAddingExercise(true);
+                    setExercise('');
+                    return;
+                  }
+
+                  setAddingExercise(false);
+                  setExercise(selected);
+                }}
+              >
+                {exerciseOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+                <option value={ADD_NEW_OPTION}>+ add new...</option>
+              </select>
+              {addingExercise && (
+                <input
+                  style={{ ...inputStyle, marginTop: '6px' }}
+                  value={exercise}
+                  onChange={(e) => setExercise(e.target.value)}
+                  placeholder="new exercise"
+                />
+              )}
             </label>
             <label>
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>set</div>
-              <input style={inputStyle} value={setNumber} onChange={(e) => setSetNumber(e.target.value)} />
+              <input
+                style={{ ...inputStyle, width: '70%' }}
+                value={setNumber}
+                onChange={(e) => setSetNumber(e.target.value)}
+              />
             </label>
             <label>
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>reps</div>
-              <input style={inputStyle} value={reps} onChange={(e) => setReps(e.target.value)} />
+              <input
+                style={{ ...inputStyle, width: '70%' }}
+                value={reps}
+                onChange={(e) => setReps(e.target.value)}
+              />
             </label>
             <label>
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>weight</div>
-              <input style={inputStyle} value={weight} onChange={(e) => setWeight(e.target.value)} />
+              <input
+                style={{ ...inputStyle, width: '70%' }}
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+              />
             </label>
           </div>
 
