@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -95,6 +95,7 @@ const mapWorkoutRow = (row) => {
 function Workout() {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const previousTimerRunningRef = useRef(false);
 
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -291,6 +292,37 @@ function Workout() {
     return () => clearInterval(interval);
   }, [timerRunning]);
 
+  useEffect(() => {
+    if (previousTimerRunningRef.current && !timerRunning && timerSeconds === 0) {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          const audioContext = new AudioContextClass();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+          gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.4);
+
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.4);
+          oscillator.onended = () => {
+            audioContext.close().catch(() => undefined);
+          };
+        }
+      } catch (error) {
+        console.error('Failed to play timer end sound:', error);
+      }
+    }
+
+    previousTimerRunningRef.current = timerRunning;
+  }, [timerRunning, timerSeconds]);
+
   const programOptions = useMemo(
     () => buildWorkoutOptions(optionRows.map((row) => row.program), program),
     [optionRows, program]
@@ -358,6 +390,94 @@ function Workout() {
     }
     setReps(String(suggestion.reps));
     setWeight(String(suggestion.weight || ''));
+  };
+
+  const createProgramOption = () => {
+    const trimmedProgram = program.trim();
+
+    if (!trimmedProgram) {
+      setMessage('enter a program name first');
+      return;
+    }
+
+    setOptionRows((previous) => [
+      {
+        program: trimmedProgram,
+        week: '',
+        day: '',
+        exercise: '',
+        created_at: new Date().toISOString()
+      },
+      ...previous
+    ]);
+    setProgram(trimmedProgram);
+    setWeek('');
+    setDay('');
+    setExercise('');
+    setAddingProgram(false);
+    setMessage('program created');
+  };
+
+  const createWeekOption = () => {
+    const trimmedProgram = program.trim();
+    const trimmedWeek = week.trim();
+
+    if (!trimmedProgram) {
+      setMessage('choose or create a program first');
+      return;
+    }
+
+    if (!trimmedWeek) {
+      setMessage('enter a week name first');
+      return;
+    }
+
+    setOptionRows((previous) => [
+      {
+        program: trimmedProgram,
+        week: trimmedWeek,
+        day: '',
+        exercise: '',
+        created_at: new Date().toISOString()
+      },
+      ...previous
+    ]);
+    setWeek(trimmedWeek);
+    setDay('');
+    setExercise('');
+    setAddingWeek(false);
+    setMessage('week created');
+  };
+
+  const createDayOption = () => {
+    const trimmedProgram = program.trim();
+    const trimmedWeek = week.trim();
+    const trimmedDay = day.trim();
+
+    if (!trimmedProgram || !trimmedWeek) {
+      setMessage('choose or create program and week first');
+      return;
+    }
+
+    if (!trimmedDay) {
+      setMessage('enter a day name first');
+      return;
+    }
+
+    setOptionRows((previous) => [
+      {
+        program: trimmedProgram,
+        week: trimmedWeek,
+        day: trimmedDay,
+        exercise: '',
+        created_at: new Date().toISOString()
+      },
+      ...previous
+    ]);
+    setDay(trimmedDay);
+    setExercise('');
+    setAddingDay(false);
+    setMessage('day created');
   };
 
   const startTimer = () => {
@@ -547,12 +667,17 @@ function Workout() {
                 <option value={ADD_NEW_OPTION}>+ add new...</option>
               </select>
               {addingProgram && (
-                <input
-                  style={{ ...inputStyle, marginTop: '6px' }}
-                  value={program}
-                  onChange={(e) => setProgram(e.target.value)}
-                  placeholder="new program"
-                />
+                <div style={{ marginTop: '6px', display: 'flex', gap: '6px' }}>
+                  <input
+                    style={inputStyle}
+                    value={program}
+                    onChange={(e) => setProgram(e.target.value)}
+                    placeholder="new program"
+                  />
+                  <button style={buttonStyle} onClick={createProgramOption}>
+                    create
+                  </button>
+                </div>
               )}
             </label>
             <label>
@@ -599,12 +724,17 @@ function Workout() {
                 <option value={ADD_NEW_OPTION}>+ add new...</option>
               </select>
               {addingWeek && (
-                <input
-                  style={{ ...inputStyle, marginTop: '6px' }}
-                  value={week}
-                  onChange={(e) => setWeek(e.target.value)}
-                  placeholder="new week"
-                />
+                <div style={{ marginTop: '6px', display: 'flex', gap: '6px' }}>
+                  <input
+                    style={inputStyle}
+                    value={week}
+                    onChange={(e) => setWeek(e.target.value)}
+                    placeholder="new week"
+                  />
+                  <button style={buttonStyle} onClick={createWeekOption}>
+                    create
+                  </button>
+                </div>
               )}
             </label>
             <label>
@@ -643,12 +773,17 @@ function Workout() {
                 <option value={ADD_NEW_OPTION}>+ add new...</option>
               </select>
               {addingDay && (
-                <input
-                  style={{ ...inputStyle, marginTop: '6px' }}
-                  value={day}
-                  onChange={(e) => setDay(e.target.value)}
-                  placeholder="new day"
-                />
+                <div style={{ marginTop: '6px', display: 'flex', gap: '6px' }}>
+                  <input
+                    style={inputStyle}
+                    value={day}
+                    onChange={(e) => setDay(e.target.value)}
+                    placeholder="new day"
+                  />
+                  <button style={buttonStyle} onClick={createDayOption}>
+                    create
+                  </button>
+                </div>
               )}
             </label>
           </div>
@@ -726,6 +861,9 @@ function Workout() {
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>set</div>
               <input
                 style={{ ...inputStyle, width: '70%' }}
+                type="number"
+                min="1"
+                step="1"
                 value={setNumber}
                 onChange={(e) => setSetNumber(e.target.value)}
               />
@@ -734,6 +872,9 @@ function Workout() {
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>reps</div>
               <input
                 style={{ ...inputStyle, width: '70%' }}
+                type="number"
+                min="1"
+                step="1"
                 value={reps}
                 onChange={(e) => setReps(e.target.value)}
               />
@@ -742,6 +883,9 @@ function Workout() {
               <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>weight</div>
               <input
                 style={{ ...inputStyle, width: '70%' }}
+                type="number"
+                min="0"
+                step="0.01"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
               />
