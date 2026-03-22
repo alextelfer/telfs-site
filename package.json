@@ -21,6 +21,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "kill:3000": "powershell -NoProfile -Command \"$conn = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if ($conn) { $pids = $conn | Select-Object -ExpandProperty OwningProcess -Unique; foreach ($processId in $pids) { Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue }; Write-Host 'Stopped processes on port 3000.' } else { Write-Host 'No process listening on port 3000.' }\"",
+    "dev:clean": "npm run kill:3000 && netlify dev",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

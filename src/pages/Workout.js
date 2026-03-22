@@ -477,6 +477,7 @@ function Workout() {
     setDay(trimmedDay);
     setExercise('');
     setAddingDay(false);
+    setAddingExercise(true);
     setMessage('day created');
   };
 
