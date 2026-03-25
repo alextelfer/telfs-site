@@ -44,6 +44,16 @@ const formatTime = (seconds) => {
   return `${mins}:${secs}`;
 };
 
+const formatWorkoutDate = (date) =>
+  date
+    .toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    })
+    .replace(',', '')
+    .toUpperCase();
+
 const normalizeWorkoutValue = (value) => String(value || '').trim();
 
 const workoutValueMatches = (left, right) =>
@@ -80,7 +90,7 @@ const mapWorkoutRow = (row) => {
   return {
     id: row.id,
     timestamp: createdAt.getTime(),
-    dateLabel: createdAt.toLocaleString(),
+    dateLabel: formatWorkoutDate(createdAt),
     program: row.program,
     week: row.week,
     day: row.day,
@@ -374,6 +384,8 @@ function Workout() {
     );
     return filtered.sort((a, b) => b.timestamp - a.timestamp);
   }, [logs, program, week, day]);
+
+  const currentWorkoutDayDateLabel = currentDayLogs[0]?.dateLabel || formatWorkoutDate(new Date());
 
   const applySuggestion = () => {
     if (!suggestion) {
@@ -922,7 +934,10 @@ function Workout() {
         </div>
 
         <div style={panelStyle}>
-          <h2 style={{ marginTop: 0, fontSize: '1rem' }}>this workout day</h2>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '6px' }}>
+            <h2 style={{ margin: 0, fontSize: '1rem' }}>this workout day</h2>
+            <span style={{ fontSize: '0.85rem' }}>{currentWorkoutDayDateLabel}</span>
+          </div>
           {logsLoading && <div style={{ fontSize: '0.9rem', marginBottom: '6px' }}>loading saved sets...</div>}
           {loadError && <div style={{ fontSize: '0.9rem', marginBottom: '6px', color: '#c00', fontWeight: 'bold' }}>{loadError}</div>}
           {currentDayLogs.length === 0 ? (
@@ -931,7 +946,7 @@ function Workout() {
             <div style={{ display: 'grid', gap: '4px' }}>
               {currentDayLogs.slice(0, 25).map((entry) => (
                 <div key={entry.id} style={{ fontSize: '0.9rem' }}>
-                  {entry.exercise} - set {entry.setNumber}: {entry.weight || 0} x {entry.reps} reps ({entry.dateLabel})
+                  {entry.exercise} - set {entry.setNumber}: {entry.weight || 0} x {entry.reps} reps
                 </div>
               ))}
             </div>
