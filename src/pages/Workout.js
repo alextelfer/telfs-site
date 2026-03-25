@@ -228,10 +228,8 @@ function Workout() {
     }
 
     const trimmedProgram = program.trim();
-    const trimmedWeek = week.trim();
-    const trimmedDay = day.trim();
 
-    if (!trimmedProgram || !trimmedWeek || !trimmedDay) {
+    if (!trimmedProgram) {
       setLogs([]);
       return undefined;
     }
@@ -247,10 +245,8 @@ function Workout() {
         .select(WORKOUT_SELECT_FIELDS)
         .eq('user_id', user.id)
         .eq('program', trimmedProgram)
-        .eq('week', trimmedWeek)
-        .eq('day', trimmedDay)
         .order('created_at', { ascending: false })
-        .limit(250);
+        .limit(750);
 
       if (!mounted) {
         return;
@@ -272,7 +268,7 @@ function Workout() {
     return () => {
       mounted = false;
     };
-  }, [user?.id, program, week, day]);
+  }, [user?.id, program]);
 
   useEffect(() => {
     if (!timerRunning) {
@@ -337,21 +333,18 @@ function Workout() {
   }, [optionRows, program, week]);
 
   const dayOptions = useMemo(() => {
-    const filteredRows = optionRows.filter(
-      (row) => workoutValueMatches(row.program, program) && workoutValueMatches(row.week, week)
-    );
+    const filteredRows = optionRows.filter((row) => workoutValueMatches(row.program, program));
 
     return buildWorkoutOptions(
       filteredRows.map((row) => row.day),
       day
     );
-  }, [optionRows, program, week, day]);
+  }, [optionRows, program, day]);
 
   const exerciseOptions = useMemo(() => {
     const filteredRows = optionRows.filter(
       (row) =>
         workoutValueMatches(row.program, program) &&
-        workoutValueMatches(row.week, week) &&
         workoutValueMatches(row.day, day)
     );
 
@@ -359,23 +352,21 @@ function Workout() {
       filteredRows.map((row) => row.exercise),
       exercise
     );
-  }, [optionRows, program, week, day, exercise]);
+  }, [optionRows, program, day, exercise]);
 
   const suggestion = useMemo(() => {
     const normalizedExercise = exercise.trim().toLowerCase();
-    if (!program.trim() || !week.trim() || !day.trim() || !normalizedExercise || !setNumber.trim()) {
+    if (!program.trim() || !normalizedExercise || !setNumber.trim()) {
       return null;
     }
 
     return logs.find(
       (entry) =>
         entry.program === program.trim() &&
-        entry.week === week.trim() &&
-        entry.day === day.trim() &&
         entry.exercise.toLowerCase() === normalizedExercise &&
         String(entry.setNumber) === setNumber.trim()
     );
-  }, [logs, program, week, day, exercise, setNumber]);
+  }, [logs, program, exercise, setNumber]);
 
   const currentDayLogs = useMemo(() => {
     const filtered = logs.filter(
@@ -388,7 +379,6 @@ function Workout() {
     if (!suggestion) {
       return;
     }
-    setReps(String(suggestion.reps));
     setWeight(String(suggestion.weight || ''));
   };
 
@@ -446,6 +436,8 @@ function Workout() {
     setDay('');
     setExercise('');
     setAddingWeek(false);
+    setAddingDay(true);
+    setAddingExercise(false);
     setMessage('week created');
   };
 
@@ -766,6 +758,7 @@ function Workout() {
                   setExercise(normalizeWorkoutValue(latestProgramWeekDayRow?.exercise));
                 }}
               >
+                <option value="">select day...</option>
                 {dayOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}
@@ -842,6 +835,7 @@ function Workout() {
                   setExercise(selected);
                 }}
               >
+                <option value="">select exercise...</option>
                 {exerciseOptions.map((option) => (
                   <option key={option} value={option}>
                     {option}
@@ -865,19 +859,10 @@ function Workout() {
                 type="number"
                 min="1"
                 step="1"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={setNumber}
                 onChange={(e) => setSetNumber(e.target.value)}
-              />
-            </label>
-            <label>
-              <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>reps</div>
-              <input
-                style={{ ...inputStyle, width: '70%' }}
-                type="number"
-                min="1"
-                step="1"
-                value={reps}
-                onChange={(e) => setReps(e.target.value)}
               />
             </label>
             <label>
@@ -887,20 +872,34 @@ function Workout() {
                 type="number"
                 min="0"
                 step="0.01"
+                inputMode="decimal"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
+              />
+            </label>
+            <label>
+              <div style={{ marginBottom: '4px', fontSize: '0.85rem' }}>reps</div>
+              <input
+                style={{ ...inputStyle, width: '70%' }}
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={reps}
+                onChange={(e) => setReps(e.target.value)}
               />
             </label>
           </div>
 
           {suggestion && (
             <div style={{ marginTop: '8px', fontSize: '0.85rem', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <span>
-                last time: {suggestion.weight || 0} x {suggestion.reps} reps on {suggestion.dateLabel}
-              </span>
               <button style={{ ...buttonStyle, padding: '4px 8px' }} onClick={applySuggestion}>
                 use last
               </button>
+              <span>
+                last time: {suggestion.weight || 0} x {suggestion.reps} reps on {suggestion.dateLabel}
+              </span>
             </div>
           )}
 
