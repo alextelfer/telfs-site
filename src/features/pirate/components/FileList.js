@@ -129,13 +129,13 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const closePreview = () => {
+  const closePreview = React.useCallback(() => {
     // No need to revoke URL since we're using B2's pre-signed URLs now
     setPreviewFile(null);
     setPreviewUrl(null);
     setPlaylist([]);
     setCurrentPlaylistIndex(0);
-  };
+  }, []);
 
   const getAuthorizedPreviewUrl = async (targetFile) => {
     const response = await fetch(
@@ -201,7 +201,7 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
     }
   };
 
-  const handlePlaylistChange = async (newIndex) => {
+  const handlePlaylistChange = React.useCallback(async (newIndex) => {
     if (newIndex < 0 || newIndex >= playlist.length) return;
     
     const newFile = playlist[newIndex];
@@ -237,7 +237,7 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
     } finally {
       setLoadingPreview(false);
     }
-  };
+  }, [playlist, session]);
 
   const isMobileViewport = viewportWidth <= 768;
   const isComicPreview = isComicFile(previewFile);

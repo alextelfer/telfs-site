@@ -15,6 +15,9 @@ const MediaPlayer = ({
   const videoRef = useRef(null);
   const playerRef = useRef(null);
   const urlTimestampRef = useRef(Date.now());
+  const onPlaylistChangeRef = useRef(onPlaylistChange);
+  const currentIndexRef = useRef(currentIndex);
+  const playlistLengthRef = useRef(playlist.length);
   const [error, setError] = useState(null);
   const [isRefreshingUrl, setIsRefreshingUrl] = useState(false);
   const { session } = useAuth();
@@ -116,137 +119,148 @@ const MediaPlayer = ({
   }, [file, session, refreshUrl]);
 
   useEffect(() => {
-    if (!videoRef.current || !url || !file) return;
+    onPlaylistChangeRef.current = onPlaylistChange;
+  }, [onPlaylistChange]);
 
-    // Check codec support
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
+  useEffect(() => {
+    playlistLengthRef.current = playlist.length;
+  }, [playlist.length]);
+
+  useEffect(() => {
+    if (!videoRef.current || playerRef.current) return;
+
+    const player = videojs(videoRef.current, {
+      controls: true,
+      autoplay: false,
+      preload: 'auto',
+      fluid: true,
+      playbackRates: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2],
+      controlBar: {
+        pictureInPictureToggle: isVideo,
+        volumePanel: {
+          inline: false
+        }
+      }
+    });
+
+    playerRef.current = player;
+
+    const savedVolume = localStorage.getItem('mediaPlayerVolume');
+    if (savedVolume) {
+      player.volume(parseFloat(savedVolume));
+    }
+
+    player.on('volumechange', () => {
+      localStorage.setItem('mediaPlayerVolume', player.volume());
+    });
+
+    player.on('ended', () => {
+      const playlistChange = onPlaylistChangeRef.current;
+      const activeIndex = currentIndexRef.current;
+      const totalItems = playlistLengthRef.current;
+      if (playlistChange && activeIndex < totalItems - 1) {
+        playlistChange(activeIndex + 1);
+      }
+    });
+
+    player.on('error', () => {
+      const currentError = player.error();
+      if (currentError) {
+        setError(`Playback error: ${currentError.message || 'Unable to play this file'}`);
+      }
+    });
+
+    const handleKeyDown = (e) => {
+      const currentPlayer = playerRef.current;
+      if (!currentPlayer) return;
+
+      switch(e.key) {
+        case ' ':
+          e.preventDefault();
+          if (currentPlayer.paused()) {
+            currentPlayer.play();
+          } else {
+            currentPlayer.pause();
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          currentPlayer.currentTime(Math.max(0, currentPlayer.currentTime() - 5));
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          currentPlayer.currentTime(currentPlayer.currentTime() + 5);
+          break;
+        case 'n':
+        case 'N': {
+          const playlistChange = onPlaylistChangeRef.current;
+          const activeIndex = currentIndexRef.current;
+          const totalItems = playlistLengthRef.current;
+          if (playlistChange && activeIndex < totalItems - 1) {
+            playlistChange(activeIndex + 1);
+          }
+          break;
+        }
+        case 'p':
+        case 'P': {
+          const playlistChange = onPlaylistChangeRef.current;
+          const activeIndex = currentIndexRef.current;
+          if (playlistChange && activeIndex > 0) {
+            playlistChange(activeIndex - 1);
+          }
+          break;
+        }
+        case 'c':
+        case 'C': {
+          const tracks = currentPlayer.textTracks();
+          if (tracks.length > 0) {
+            const track = tracks[0];
+            track.mode = track.mode === 'showing' ? 'hidden' : 'showing';
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (playerRef.current && !playerRef.current.isDisposed()) {
+        if (playerRef.current.isFullscreen && playerRef.current.isFullscreen()) {
+          playerRef.current.exitFullscreen();
+        }
+
+        const fullscreenElement = document.fullscreenElement;
+        if (fullscreenElement && playerRef.current.el && playerRef.current.el()?.contains(fullscreenElement)) {
+          document.exitFullscreen?.();
+        }
+
+        playerRef.current.dispose();
+        playerRef.current = null;
+      }
+    };
+  }, [isVideo]);
+
+  useEffect(() => {
+    if (!playerRef.current || !url || !file) return;
+
     const codecCheck = checkCodecSupport(file.file_type);
     if (!codecCheck.supported) {
       setError(codecCheck.message);
       return;
     }
 
-    let player = null;
-
-    // Wait for element to be in DOM
-    const initPlayer = () => {
-      if (!videoRef.current || !document.body.contains(videoRef.current)) {
-        console.warn('Video element not in DOM yet');
-        return;
-      }
-
-      // Initialize Video.js player
-      player = videojs(videoRef.current, {
-        controls: true,
-        autoplay: false,
-        preload: 'auto',
-        fluid: true,
-        playbackRates: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2],
-        controlBar: {
-          pictureInPictureToggle: isVideo,
-          volumePanel: {
-            inline: false
-          }
-        }
-      });
-
-      playerRef.current = player;
-      urlTimestampRef.current = Date.now();
-
-      // Set source
-      player.src({ src: url, type: file.file_type });
-
-      // Load volume from localStorage
-      const savedVolume = localStorage.getItem('mediaPlayerVolume');
-      if (savedVolume) {
-        player.volume(parseFloat(savedVolume));
-      }
-
-      // Save volume when changed
-      player.on('volumechange', () => {
-        localStorage.setItem('mediaPlayerVolume', player.volume());
-      });
-
-      // Handle playlist - auto-advance to next track
-      player.on('ended', () => {
-        if (onPlaylistChange && currentIndex < playlist.length - 1) {
-          onPlaylistChange(currentIndex + 1);
-        }
-      });
-
-      // Handle errors
-      player.on('error', () => {
-        const err = player.error();
-        if (err) {
-          setError(`Playback error: ${err.message || 'Unable to play this file'}`);
-        }
-      });
-
-      // Keyboard shortcuts
-      const handleKeyDown = (e) => {
-        if (!player) return;
-
-        switch(e.key) {
-          case ' ':
-            e.preventDefault();
-            if (player.paused()) {
-              player.play();
-            } else {
-              player.pause();
-            }
-            break;
-          case 'ArrowLeft':
-            e.preventDefault();
-            player.currentTime(Math.max(0, player.currentTime() - 5));
-            break;
-          case 'ArrowRight':
-            e.preventDefault();
-            player.currentTime(player.currentTime() + 5);
-            break;
-          case 'n':
-          case 'N':
-            if (onPlaylistChange && currentIndex < playlist.length - 1) {
-              onPlaylistChange(currentIndex + 1);
-            }
-            break;
-          case 'p':
-          case 'P':
-            if (onPlaylistChange && currentIndex > 0) {
-              onPlaylistChange(currentIndex - 1);
-            }
-            break;
-          case 'c':
-          case 'C':
-            // Toggle captions/subtitles
-            const tracks = player.textTracks();
-            if (tracks.length > 0) {
-              const track = tracks[0];
-              track.mode = track.mode === 'showing' ? 'hidden' : 'showing';
-            }
-            break;
-          default:
-            break;
-        }
-      };
-
-      window.addEventListener('keydown', handleKeyDown);
-
-      // Cleanup for this player instance
-      return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-      };
-    };
-
-    // Delay initialization to ensure DOM is ready
-    const timeoutId = setTimeout(initPlayer, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      if (playerRef.current && !playerRef.current.isDisposed()) {
-        playerRef.current.dispose();
-        playerRef.current = null;
-      }
-    };
-  }, [url, file, currentIndex, playlist.length, onPlaylistChange, isVideo]);
+    setError(null);
+    playerRef.current.src({ src: url, type: file.file_type });
+    urlTimestampRef.current = Date.now();
+  }, [url, file]);
 
   const handlePrevious = () => {
     if (onPlaylistChange && currentIndex > 0) {
