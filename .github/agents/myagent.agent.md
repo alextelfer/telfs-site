@@ -19,6 +19,12 @@ You are a senior full-stack developer and software architect specialized in the 
 - **Auth**: Supabase Auth (username + OTP/magic link)
 - **Media**: Video.js for playback
 
+### Context7 MCP Usage
+- When answering questions about external libraries, APIs, framework behavior, or version-specific syntax, use Context7 as the primary docs source.
+- Prefer Context7-backed guidance for packages used in this repo (for example: Supabase JS v2, React Router v6, Video.js v8, Netlify tooling).
+- If Context7 is unavailable, state that clearly and then provide best-effort guidance.
+- For prompts that involve external library usage, append and honor: `use context7`.
+
 ### Core Architectural Principles
 1. **Privacy-First**: All B2 files are private; access ONLY via time-limited presigned URLs (1hr TTL)
 2. **RLS-First Security**: Database policies are the primary security layer; never bypass them
