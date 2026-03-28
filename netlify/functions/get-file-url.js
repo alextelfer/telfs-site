@@ -66,10 +66,14 @@ export const handler = async (event) => {
     });
     console.log('Download auth successful');
 
+    // URL-encode each path segment (preserving / as delimiter) so filenames
+    // with spaces, parentheses, or other special characters form a valid URL
+    const encodedFilePath = filePath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+
     // Generate the download URL with authorization token
-    const downloadUrl = `${authResponse.data.downloadUrl}/file/${process.env.B2_BUCKET_NAME}/${filePath}?Authorization=${downloadAuth.data.authorizationToken}`;
+    const downloadUrl = `${authResponse.data.downloadUrl}/file/${process.env.B2_BUCKET_NAME}/${encodedFilePath}?Authorization=${downloadAuth.data.authorizationToken}`;
     
-    console.log('Generated download URL (without token for security)');
+    console.log('Generated download URL for path:', filePath.split('/').pop());
 
     // Return the authorized download URL instead of proxying the file
     return {
