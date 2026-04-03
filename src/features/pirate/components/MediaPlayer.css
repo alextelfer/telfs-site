@@ -29,29 +29,45 @@
 
 .video-js .vjs-control-bar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   background-color: #c0c0c0;
   border-top: 2px solid #ffffff;
   border-left: 2px solid #ffffff;
   border-right: 2px solid #808080;
   border-bottom: 2px solid #808080;
   height: 3.5em;
+  overflow: hidden;
 }
 
 .video-js .vjs-button > .vjs-icon-placeholder:before {
   line-height: 1.9em;
 }
 
-.video-js .vjs-control {
-  width: 3em;
+.video-js .vjs-control-bar .vjs-control {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.video-js .vjs-playback-rate,
-.video-js .vjs-remaining-time,
-.video-js .vjs-current-time,
-.video-js .vjs-duration {
+.video-js .vjs-control-bar .vjs-volume-panel {
+  flex: 1 1 0;
   width: auto;
-  min-width: max-content;
+}
+
+.video-js .vjs-volume-control.vjs-volume-horizontal {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-js .vjs-volume-bar.vjs-slider-horizontal {
+  width: 70%;
+  max-width: 72px;
+  margin: 0 auto;
 }
 
 .video-js .vjs-control:focus,
@@ -126,16 +142,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  line-height: 1.2;
-  min-width: 3em;
-  padding: 0 0.5em;
+  line-height: 1;
+  min-width: 0;
+  padding: 0 0.25em;
   color: #000000;
   font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .video-js .vjs-remaining-time {
   display: block;
-  padding-right: 0.8em;
+  padding-right: 0;
 }
 
 .video-js .vjs-playback-rate .vjs-playback-rate-value {

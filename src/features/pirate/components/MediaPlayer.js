@@ -142,7 +142,7 @@ const MediaPlayer = ({
       controlBar: {
         pictureInPictureToggle: isVideo,
         volumePanel: {
-          inline: false
+          inline: true
         }
       }
     });
