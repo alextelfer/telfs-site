@@ -9,7 +9,6 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
   const [loading, setLoading] = useState(true);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
 
   const buildBreadcrumbs = React.useCallback(async () => {
     if (!currentFolder) {
@@ -111,12 +110,6 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
   }, [currentFolder]);
 
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-    };
-    
-    fetchCurrentUser();
     fetchFoldersAndFiles();
     buildBreadcrumbs();
     
@@ -147,6 +140,11 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
   };
 
   const handleDeleteFolder = async (folderId) => {
+    if (!isAdmin) {
+      alert('Only admins can delete folders.');
+      return;
+    }
+
     if (!window.confirm('Are you sure you want to delete this folder? All contents will be deleted.')) {
       return;
     }
@@ -164,6 +162,11 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
   };
 
   const handleDeleteFile = async (fileId) => {
+    if (!isAdmin) {
+      alert('Only admins can delete files.');
+      return;
+    }
+
     if (!window.confirm('Are you sure you want to delete this file?')) {
       return;
     }
@@ -304,24 +307,26 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
                     by {folder.created_by_username}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDeleteFolder(folder.id)}
-                  style={{
-                    padding: '2px 8px',
-                    background: '#c0c0c0',
-                    border: '2px solid',
-                    borderColor: '#fff #000 #000 #fff',
-                    borderRadius: '0',
-                    color: '#000',
-                    cursor: 'pointer',
-                    fontSize: '0.75rem',
-                    width: '100%',
-                    fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
-                    boxShadow: 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
-                  }}
-                >
-                  Delete
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => handleDeleteFolder(folder.id)}
+                    style={{
+                      padding: '2px 8px',
+                      background: '#c0c0c0',
+                      border: '2px solid',
+                      borderColor: '#fff #000 #000 #fff',
+                      borderRadius: '0',
+                      color: '#000',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      width: '100%',
+                      fontFamily: 'MS Sans Serif, Microsoft Sans Serif, Arial, sans-serif',
+                      boxShadow: 'inset 1px 1px 0 #dfdfdf, inset -1px -1px 0 #808080'
+                    }}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -334,7 +339,6 @@ const FileExplorer = ({ currentFolder, onFolderChange, isAdmin }) => {
         <FileList 
           files={files} 
           onDelete={handleDeleteFile} 
-          currentUser={currentUser}
           isAdmin={isAdmin}
         />
       </div>

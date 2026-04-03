@@ -96,7 +96,7 @@ export const handler = async (event) => {
 
     const isAdmin = profile?.is_admin || false;
 
-    // Check permissions: user must be admin OR file owner
+    // Admins can delete any file; owners can delete their own file
     if (!isAdmin && fileData.uploaded_by !== user.id) {
       return {
         statusCode: 403,

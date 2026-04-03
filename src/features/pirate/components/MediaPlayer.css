@@ -28,6 +28,8 @@
 }
 
 .video-js .vjs-control-bar {
+  display: flex;
+  align-items: center;
   background-color: #c0c0c0;
   border-top: 2px solid #ffffff;
   border-left: 2px solid #ffffff;
@@ -42,6 +44,14 @@
 
 .video-js .vjs-control {
   width: 3em;
+}
+
+.video-js .vjs-playback-rate,
+.video-js .vjs-remaining-time,
+.video-js .vjs-current-time,
+.video-js .vjs-duration {
+  width: auto;
+  min-width: max-content;
 }
 
 .video-js .vjs-control:focus,
@@ -113,7 +123,10 @@
 }
 
 .video-js .vjs-time-control {
-  line-height: 3.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
   min-width: 3em;
   padding: 0 0.5em;
   color: #000000;
@@ -122,6 +135,11 @@
 
 .video-js .vjs-remaining-time {
   display: block;
+  padding-right: 0.8em;
+}
+
+.video-js .vjs-playback-rate .vjs-playback-rate-value {
+  line-height: 1.2;
 }
 
 /* Big play button */

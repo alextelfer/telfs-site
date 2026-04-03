@@ -71,10 +71,6 @@ CREATE POLICY "Users can update their own folders"
   ON folders FOR UPDATE 
   USING (created_by = auth.uid());
 
-CREATE POLICY "Users can delete their own folders" 
-  ON folders FOR DELETE 
-  USING (created_by = auth.uid());
-
 -- Files: All authenticated users can view files
 CREATE POLICY "Files are viewable by authenticated users" 
   ON files FOR SELECT 

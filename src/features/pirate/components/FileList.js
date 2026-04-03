@@ -4,7 +4,7 @@ import MediaPlayer from './MediaPlayer';
 import ComicViewer from './ComicViewer';
 import CommentSection from './CommentSection';
 
-const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
+const FileList = ({ files, onDelete, isAdmin }) => {
   const [downloadingFiles, setDownloadingFiles] = React.useState(new Set());
   const [previewFile, setPreviewFile] = React.useState(null);
   const [previewUrl, setPreviewUrl] = React.useState(null);
@@ -78,9 +78,9 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
 
   // Function to check if user can delete a file
   const canDeleteFile = (file) => {
-    if (!currentUser) return false;
-    // Admins can delete any file, or users can delete their own files
-    return isAdmin || file.uploaded_by === currentUser.id;
+    const currentUserId = session?.user?.id;
+    if (!currentUserId) return false;
+    return Boolean(isAdmin) || file.uploaded_by === currentUserId;
   };
 
   const getFileExtension = (fileName = '') => {
@@ -477,7 +477,7 @@ const FileList = ({ files, onDelete, currentUser, isAdmin }) => {
           >
             <CommentSection
               fileId={file.id}
-              currentUserId={currentUser?.id}
+              currentUserId={session?.user?.id}
               isAdmin={isAdmin}
               onCommentCountChange={(count) => {
                 setCommentCounts(prev => ({ ...prev, [file.id]: count }));
