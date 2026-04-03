@@ -157,6 +157,13 @@
   padding-right: 0;
 }
 
+.video-js .vjs-playback-rate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+}
+
 .video-js .vjs-playback-rate .vjs-playback-rate-value {
   line-height: 1.2;
 }
@@ -169,10 +176,10 @@
   border-right: 3px solid #808080;
   border-bottom: 3px solid #808080;
   border-radius: 0;
-  font-size: 3em;
-  line-height: 1.5em;
-  height: 1.5em;
-  width: 2em;
+  font-size: 2em;
+  line-height: 1.2em;
+  height: 1.2em;
+  width: 1.4em;
   color: #000000;
 }
 
