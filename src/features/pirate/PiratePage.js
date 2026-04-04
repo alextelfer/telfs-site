@@ -109,12 +109,38 @@ const PiratePage = () => {
 
     // Initial check for existing session (but don't redirect if processing auth callback)
     if (!hasAuthTokens) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!mounted) return;
         if (!session) {
           clearTimeout(loadingTimeout);
           setLoading(false);
           navigate('/piracy');
+        } else {
+          // Session exists, fetch profile and set state
+          try {
+            setUser(session.user);
+            const { data: profile, error } = await supabase
+              .from('user_profiles')
+              .select('is_admin, username')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (!mounted) return;
+            
+            if (error) {
+              console.error('Profile fetch error:', error);
+            }
+            
+            if (profile) {
+              setIsAdmin(profile.is_admin || false);
+              setUsername(profile.username || '');
+            }
+          } catch (err) {
+            console.error('Profile fetch exception:', err);
+          }
+          
+          clearTimeout(loadingTimeout);
+          setLoading(false);
         }
       }).catch((err) => {
         console.error('getSession error:', err);
