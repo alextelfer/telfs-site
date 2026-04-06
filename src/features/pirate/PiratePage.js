@@ -48,19 +48,6 @@ const PiratePage = () => {
       }
     }, 5000);
 
-    // Check if URL has auth tokens (magic link callback)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const hasAuthTokens = hashParams.has('access_token') || hashParams.has('error');
-
-    // Handle auth error in URL
-    if (hashParams.has('error')) {
-      console.error('Auth error:', hashParams.get('error_description'));
-      clearTimeout(loadingTimeout);
-      setLoading(false);
-      navigate('/piracy');
-      return;
-    }
-
     // Listen for auth state changes (handles magic link callback)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
@@ -91,14 +78,11 @@ const PiratePage = () => {
           
           clearTimeout(loadingTimeout);
           setLoading(false);
-        } else if (!hasAuthTokens) {
-          // Only redirect if we're not processing auth tokens
+        } else {
+          // No user session found
           clearTimeout(loadingTimeout);
           setLoading(false);
           navigate('/piracy');
-        } else {
-          // Has auth tokens but no session - wait a bit more, but timeout will handle it
-          console.log('Waiting for session with auth tokens...');
         }
       } else if (event === 'SIGNED_OUT') {
         clearTimeout(loadingTimeout);
@@ -107,9 +91,8 @@ const PiratePage = () => {
       }
     });
 
-    // Initial check for existing session (but don't redirect if processing auth callback)
-    if (!hasAuthTokens) {
-      supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Always check for existing session - getSession() processes URL auth tokens from magic link callback
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
         if (!mounted) return;
         if (!session) {
           clearTimeout(loadingTimeout);
@@ -150,7 +133,6 @@ const PiratePage = () => {
           navigate('/piracy');
         }
       });
-    }
 
     return () => {
       mounted = false;
