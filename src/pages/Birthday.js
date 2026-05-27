@@ -36,25 +36,26 @@ export default function Birthday() {
 
   return (
     <div style={{ minHeight: '100vh',
-    padding: '250px 16px 16px', // top, left/right, bottom
+    padding: '25px 16px 16px', // top, left/right, bottom
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    textAlign: 'left',
     boxSizing: 'border-box', }}>
       <h1>come to my birthday</h1>
-      <h1>saturday, June 21st</h1>
-      <h1>the big 2-9</h1>
-      <p>come hang and 'av a pint at the ship. </p>
+      <h1>friday, june 19</h1>
+      
+      <p>come to my home, have a drink</p>
       <p>please rsvp :)</p>
       
       <section>
         <h2>location:</h2>
-        {/* <p><strong>spike ball in the park (weather permitting):</strong> 4-7pm <a href='https://maps.app.goo.gl/MAiav4Lc2kfTuKwY7'>Beaulieu Gardens</a></p> */}
-        {/* <p>if the weather sucks will prob just go drinking</p> */}
-        <p><strong>drinkies:</strong> 7pm ish <a href='https://maps.app.goo.gl/ibGWpob9PqEPyT8V7'>ship & anchor</a> </p>
+        <p><strong>my home:</strong> 1732 9a ST SW - <a href='https://maps.app.goo.gl/GR8VNcmtmfKGKuc9A'>chelsea terrace</a> </p>
 
-        <h3>Add to Calendar</h3>
-        <a href="/birthday-invite.ics" download>Add to Calendar (.ics)</a>
+                
+        <h2>time:</h2>
+        <p>after 7pm</p><br/>
+        <a href="/birthday-invite.ics" download>add to calendar (.ics)</a>
       </section>
 
       <section>
