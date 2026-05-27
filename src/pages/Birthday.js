@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import RSVPForm from '../components/RSVPForm';
 
-const PASSWORD = "b1,2m3n412l3h1c!@#$!!@34j12"; // Replace with actual password
+const PASSWORD = process.env.REACT_APP_BIRTHDAY_PASSWORD || "";
 
 export default function Birthday() {
   const [entered, setEntered] = useState(false);
