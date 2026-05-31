@@ -47,6 +47,7 @@ export default function Birthday() {
       
       <p>come to my home, have a drink</p>
       <p>please rsvp :)</p>
+      <p>there will be a magician!</p>
       
       <section>
         <h2>location:</h2>
@@ -55,6 +56,7 @@ export default function Birthday() {
                 
         <h2>time:</h2>
         <p>after 7pm</p><br/>
+        <p>magician arrives at ~ 830pm!</p>
         <a href="/birthday-invite.ics" download>add to calendar (.ics)</a>
       </section>
 
