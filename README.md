@@ -1,70 +1,122 @@
-# Getting Started with Create React App
+# Telfs Site
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is the main telfs web app. It combines a few different experiences in one React + Supabase project: a public home page, RSVP and birthday invite pages, a workout tracker, and a private documented hub for authenticated file sharing and chat.
 
-## Available Scripts
+## What’s inside
 
-In the project directory, you can run:
+- Public landing page at `/`
+- RSVP page at `/rsvp`
+- Birthday invite page at `/birthday`, with password gating and an embedded RSVP form
+- Workout logging page at `/workout`, backed by Supabase
+- Magic-link sign-in at `/piracy`
+- Private pirate hub at `/piracy_is_cool`, with:
+	- folder and file browsing
+	- private file uploads and downloads
+	- large file multipart upload support
+	- authenticated chat
+	- admin delete controls
+	- username editing
 
-### `npm start`
+## Tech Stack
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- React 18
+- React Router 6
+- Supabase Auth and PostgreSQL
+- Netlify Functions
+- Backblaze B2 for private file storage
+- Video.js for media playback
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Project Structure
 
-### `npm test`
+```text
+src/
+	components/           shared UI pieces
+	features/
+		auth/               magic-link sign in
+		photos/             photo gallery feature work
+		pirate/             private file sharing hub
+	pages/                birthday, RSVP, home, workout
+	lib/                  Supabase client and auth context
+netlify/functions/      serverless endpoints for uploads, chat, comments, and auth-related actions
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Running Locally
 
-### `npm run build`
+Install dependencies:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm install
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Start the app:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm start
+```
 
-### `npm run eject`
+Build for production:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+npm run build
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Run tests:
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+npm test
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+For local Netlify development, you can also use:
 
-## Learn More
+```bash
+npm run dev:clean
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Environment Variables
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Create a local `.env` file with the client-side values used by the app:
 
-### Code Splitting
+```env
+REACT_APP_SUPABASE_URL=your_supabase_url
+REACT_APP_SUPABASE_KEY=your_supabase_anon_key
+REACT_APP_B2_BUCKET_NAME=your_b2_bucket_name
+REACT_APP_BIRTHDAY_PASSWORD=your_birthday_password
+REACT_APP_REDIRECT_URL=https://your-domain.com/piracy_is_cool
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Set these values in Netlify for the serverless functions:
 
-### Analyzing the Bundle Size
+```env
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+B2_KEY_ID=your_b2_key_id
+B2_APP_KEY=your_b2_app_key
+B2_BUCKET_ID=your_b2_bucket_id
+B2_BUCKET_NAME=your_b2_bucket_name
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Feature Notes
 
-### Making a Progressive Web App
+### Birthday + RSVP
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+The birthday page is password protected and includes the RSVP form plus event details and calendar download support.
 
-### Advanced Configuration
+### Workout Tracker
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+The workout page lets a signed-in user log training sessions by program, week, day, exercise, reps, weight, and timer data.
 
-### Deployment
+### Pirate Hub
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+The pirate area is the most feature-rich part of the app. It uses Supabase auth, private Backblaze B2 storage, and Netlify functions to handle uploads, folder management, chat, and secure downloads.
 
-### `npm run build` fails to minify
+Large uploads use multipart chunking, while smaller files use presigned upload URLs with a proxy fallback for tiny files.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Magic-Link Sign In
+
+The `/piracy` route sends a Supabase magic link email and redirects signed-in users into the private pirate hub.
+
+## Deployment
+
+The project is configured for Netlify. Build output goes to `build/`, and serverless functions live in `netlify/functions/`.
+
+If you change database tables, storage rules, or function behavior, update the matching SQL migration or function file alongside the code.
