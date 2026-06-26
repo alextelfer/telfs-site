@@ -1,6 +1,3 @@
-// import Spinner from '../components/Spinner';
-
-
 function Home() {
   return (
     <div className="App">

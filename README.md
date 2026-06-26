@@ -30,9 +30,9 @@ This is the main telfs web app. It combines a few different experiences in one R
 
 ```text
 src/
-	components/           shared UI pieces
 	features/
 		auth/               magic-link sign in
+		birthday/           birthday-specific components
 		photos/             photo gallery feature work
 		pirate/             private file sharing hub
 	pages/                birthday, RSVP, home, workout

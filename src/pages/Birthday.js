@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import RSVPForm from '../components/RSVPForm';
+import RSVPForm from '../features/birthday/components/RSVPForm';
 
 const PASSWORD = process.env.REACT_APP_BIRTHDAY_PASSWORD || "";
 

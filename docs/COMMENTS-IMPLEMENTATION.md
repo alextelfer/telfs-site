@@ -6,7 +6,7 @@ A complete comment system has been implemented for files in your pirate page. Us
 ## What Was Implemented
 
 ### 1. Database Schema
-**File:** [migration-file-comments.sql](migration-file-comments.sql)
+**File:** [migration-file-comments.sql](../database/migrations/migration-file-comments.sql)
 - Created `file_comments` table with proper foreign keys
 - Row-level security policies for read/write/delete access
 - Indexes for optimized queries on `file_id` and `created_at`
@@ -68,12 +68,12 @@ Created 4 serverless functions:
 Execute the SQL migration in your Supabase SQL editor:
 
 ```bash
-# Copy the contents of migration-file-comments.sql and run in Supabase
+# Copy the contents of database/migrations/migration-file-comments.sql and run in Supabase
 ```
 
 Or run via CLI:
 ```bash
-psql -h YOUR_SUPABASE_HOST -U postgres -d postgres -f migration-file-comments.sql
+psql -h YOUR_SUPABASE_HOST -U postgres -d postgres -f database/migrations/migration-file-comments.sql
 ```
 
 ### 2. Deploy Netlify Functions
@@ -124,7 +124,7 @@ src/features/pirate/components/
   ├── FileList.js             # Integrated with comments
   └── MediaPlayer.css         # Includes comment styles
 
-migration-file-comments.sql   # Database schema
+database/migrations/migration-file-comments.sql   # Database schema
 ```
 
 ## Future Enhancements (Optional)
