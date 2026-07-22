@@ -111,6 +111,7 @@ function Workout() {
   const [authLoading, setAuthLoading] = useState(true);
   const [logs, setLogs] = useState([]);
   const [optionRows, setOptionRows] = useState([]);
+  const [catalogRows, setCatalogRows] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -204,6 +205,39 @@ function Workout() {
     };
 
     fetchWorkoutOptions();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      return undefined;
+    }
+
+    let mounted = true;
+
+    const fetchProgramCatalog = async () => {
+      const { data, error } = await supabase
+        .from('program_exercises')
+        .select('program, day, exercise, sort_order, target_sets, target_reps, notes')
+        .order('program', { ascending: true })
+        .order('sort_order', { ascending: true });
+
+      if (!mounted) {
+        return;
+      }
+
+      if (error) {
+        console.error('Failed to fetch program exercise catalog:', error);
+        return;
+      }
+
+      setCatalogRows(data || []);
+    };
+
+    fetchProgramCatalog();
 
     return () => {
       mounted = false;
@@ -330,8 +364,12 @@ function Workout() {
   }, [timerRunning, timerSeconds]);
 
   const programOptions = useMemo(
-    () => buildWorkoutOptions(optionRows.map((row) => row.program), program),
-    [optionRows, program]
+    () =>
+      buildWorkoutOptions(
+        [...optionRows.map((row) => row.program), ...catalogRows.map((row) => row.program)],
+        program
+      ),
+    [optionRows, catalogRows, program]
   );
 
   const weekOptions = useMemo(() => {
@@ -344,12 +382,13 @@ function Workout() {
 
   const dayOptions = useMemo(() => {
     const filteredRows = optionRows.filter((row) => workoutValueMatches(row.program, program));
+    const filteredCatalogRows = catalogRows.filter((row) => workoutValueMatches(row.program, program));
 
     return buildWorkoutOptions(
-      filteredRows.map((row) => row.day),
+      [...filteredRows.map((row) => row.day), ...filteredCatalogRows.map((row) => row.day)],
       day
     );
-  }, [optionRows, program, day]);
+  }, [optionRows, catalogRows, program, day]);
 
   const exerciseOptions = useMemo(() => {
     const filteredRows = optionRows.filter(
@@ -357,12 +396,32 @@ function Workout() {
         workoutValueMatches(row.program, program) &&
         workoutValueMatches(row.day, day)
     );
+    const filteredCatalogRows = catalogRows.filter(
+      (row) =>
+        workoutValueMatches(row.program, program) &&
+        workoutValueMatches(row.day, day)
+    );
 
     return buildWorkoutOptions(
-      filteredRows.map((row) => row.exercise),
+      [...filteredRows.map((row) => row.exercise), ...filteredCatalogRows.map((row) => row.exercise)],
       exercise
     );
-  }, [optionRows, program, day, exercise]);
+  }, [optionRows, catalogRows, program, day, exercise]);
+
+  const catalogMatch = useMemo(() => {
+    if (!program.trim() || !day.trim() || !exercise.trim()) {
+      return null;
+    }
+
+    return (
+      catalogRows.find(
+        (row) =>
+          workoutValueMatches(row.program, program) &&
+          workoutValueMatches(row.day, day) &&
+          workoutValueMatches(row.exercise, exercise)
+      ) || null
+    );
+  }, [catalogRows, program, day, exercise]);
 
   const suggestion = useMemo(() => {
     const normalizedExercise = exercise.trim().toLowerCase();
@@ -862,6 +921,14 @@ function Workout() {
                   onChange={(e) => setExercise(e.target.value)}
                   placeholder="new exercise"
                 />
+              )}
+              {catalogMatch && (
+                <div style={{ marginTop: '6px', fontSize: '0.8rem' }}>
+                  target: {catalogMatch.target_sets ? `${catalogMatch.target_sets} sets` : ''}
+                  {catalogMatch.target_sets && catalogMatch.target_reps ? ' x ' : ''}
+                  {catalogMatch.target_reps ? `${catalogMatch.target_reps} reps` : ''}
+                  {catalogMatch.notes ? ` — ${catalogMatch.notes}` : ''}
+                </div>
               )}
             </label>
             <label>
