@@ -7,6 +7,7 @@ import PiratePage from './features/pirate/PiratePage';
 import SignIn from './features/auth/SignIn';
 import BackupPage from './features/backup/BackupPage';
 import BackupSignIn from './features/backup/BackupSignIn';
+import CCStaffPartyPage from './features/ccstaffparty/CCStaffPartyPage';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/piracy" element={<SignIn />} />
         <Route path="/backup" element={<BackupPage />} />
         <Route path="/backup-login" element={<BackupSignIn />} />
+        <Route path="/ccstaffparty" element={<CCStaffPartyPage />} />
       </Routes>
     </Router>
   );
