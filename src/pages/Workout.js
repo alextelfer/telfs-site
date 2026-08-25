@@ -476,6 +476,11 @@ function Workout() {
     setDay('');
     setExercise('');
     setAddingProgram(false);
+    // A brand-new program has no logged weeks yet, so the week dropdown
+    // would only contain the "+ add new..." option. With nothing else to
+    // select, clicking it doesn't fire a change event and the create-week
+    // input never appears. Open it automatically instead.
+    setAddingWeek(true);
     setMessage('program created');
   };
 
@@ -714,7 +719,12 @@ function Workout() {
                   );
 
                   setAddingProgram(false);
-                  setAddingWeek(false);
+                  // If this program has no logged weeks yet (e.g. a catalog
+                  // program picked for the first time), the week dropdown
+                  // would only have "+ add new..." in it, which can't be
+                  // selected via a change event since there's nothing else
+                  // to change from. Open the create-week input directly.
+                  setAddingWeek(!latestWeekValue);
                   setAddingDay(false);
                   setAddingExercise(false);
                   setProgram(selected);
